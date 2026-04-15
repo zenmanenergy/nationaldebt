@@ -371,13 +371,6 @@ function renderJobs() {
 		const belowPoverty = afterTaxIncome < POVERTY_LEVEL_2025;
 
 		const card = document.createElement('div');
-		card.className = `student-card ${status === 'risk' ? 'at-risk' : status === 'lost' ? 'job-lost' : ''} ${belowPoverty ? 'below-poverty' : ''}`;
-		card.dataset.studentId = s.id;
-
-		const statusLabel = status === 'ok' ? 'OK' : status === 'risk' ? 'AT RISK' : 'JOB LOST';
-		const statusClass  = status === 'ok' ? 'status-ok' : status === 'risk' ? 'status-risk' : 'status-lost';
-		const povertyIndicator = belowPoverty ? '<div class="poverty-indicator">BELOW POVERTY LEVEL</div>' : '';
-		
 		const affordability = calcAffordability(afterTaxIncome);
 		const unaffordableItems = Object.entries(affordability.items)
 			.filter(([key, item]) => !item.canAfford)
@@ -396,6 +389,12 @@ function renderJobs() {
 				};
 				return expenseNames[key];
 			});
+		card.className = `student-card ${status === 'risk' ? 'at-risk' : status === 'lost' ? 'job-lost' : ''} ${belowPoverty ? 'below-poverty' : ''} ${unaffordableItems.length > 0 ? 'has-unaffordables' : ''}`;
+		card.dataset.studentId = s.id;
+
+		const statusLabel = status === 'ok' ? 'OK' : status === 'risk' ? 'AT RISK' : 'JOB LOST';
+		const statusClass  = status === 'ok' ? 'status-ok' : status === 'risk' ? 'status-risk' : 'status-lost';
+		const povertyIndicator = belowPoverty ? '<div class="poverty-indicator">BELOW POVERTY LEVEL</div>' : '';
 		const unaffordableDisplay = unaffordableItems.length > 0 
 			? `<div class="card-essentials">Cannot afford: ${unaffordableItems.join(', ')}</div>` 
 			: '';

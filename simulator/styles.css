@@ -109,7 +109,8 @@ input[type="number"]:focus, input[type="text"]:focus{outline:none;border-color:v
 .student-card{background:#1c2128;border:1px solid var(--border);border-radius:5px;padding:5px 6px;position:relative;transition:all .3s;cursor:pointer}
 .student-card:hover{border-color:var(--blue)}
 .student-card.at-risk{border-color:var(--amber)!important;background:#1f1a10}
-.student-card.job-lost{border-color:var(--red)!important;background:#1a1010;opacity:.75}
+.student-card.job-lost{border-color:var(--red)!important;background:#1a1010}
+.student-card.has-unaffordables{border-color:var(--red)!important;border-width:2px}
 .card-status{position:absolute;top:3px;right:3px;font-family:'IBM Plex Mono',monospace;font-size:7px;font-weight:700;padding:1px 3px;border-radius:2px;text-transform:uppercase}
 .status-ok{background:#1f3d2f;color:var(--green)}
 .status-risk{background:#332200;color:var(--amber)}
@@ -118,7 +119,7 @@ input[type="number"]:focus, input[type="text"]:focus{outline:none;border-color:v
 .card-income{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);margin-top:1px}
 .card-tax{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:700;color:var(--blue);margin-top:2px}
 .card-after-tax{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);margin-top:1px}
-.card-essentials{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--green);margin-top:2px;font-weight:600}
+.card-essentials{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--red);margin-top:2px;font-weight:600}
 .card-rate{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted)}
 .card-dep{font-size:10px;color:var(--muted);margin-top:2px;line-height:1.2}
 .poverty-indicator{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;color:var(--red);margin-top:3px;padding:2px 4px;background:rgba(248,81,73,0.1);border:1px solid rgba(248,81,73,0.3);border-radius:2px;text-transform:uppercase;letter-spacing:.05em}
@@ -305,4 +306,4 @@ input[type="number"]:focus, input[type="text"]:focus{outline:none;border-color:v
 
 /* Job lost overlay */
 .job-lost-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(26,16,16,.85);border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:700;color:var(--red);letter-spacing:.05em;pointer-events:none;display:none}
-.student-card.job-lost .job-lost-overlay{display:flex}
+.student-card.job-lost .job-lost-overlay{display:none}

@@ -14,9 +14,32 @@ function showStudentReport(studentId) {
 	const student = students.find(s => s.id === studentId);
 	if (!student) return;
 	
-	const {incomeTax, payroll, cgTax, consumptionTax, total, effRate} = calcStudentTax(student);
-	const totalIncome = student.income + student.cgIncome;
-	const afterTaxIncome = totalIncome - total;
+	const status = checkJobStatus(student);
+	const isJobLost = status === 'lost';
+	
+	let totalIncome, afterTaxIncome, incomeTax, payroll, cgTax, consumptionTax, total, effRate;
+	
+	if (isJobLost) {
+		totalIncome = 0;
+		afterTaxIncome = 0;
+		incomeTax = 0;
+		payroll = 0;
+		cgTax = 0;
+		consumptionTax = 0;
+		total = 0;
+		effRate = 0;
+	} else {
+		const taxCalc = calcStudentTax(student);
+		incomeTax = taxCalc.incomeTax;
+		payroll = taxCalc.payroll;
+		cgTax = taxCalc.cgTax;
+		consumptionTax = taxCalc.consumptionTax;
+		total = taxCalc.total;
+		effRate = taxCalc.effRate;
+		totalIncome = student.income + student.cgIncome;
+		afterTaxIncome = totalIncome - total;
+	}
+	
 	const affordability = calcAffordability(afterTaxIncome);
 	const monthlyIncome = afterTaxIncome / 12;
 	
@@ -25,6 +48,7 @@ function showStudentReport(studentId) {
 			<div style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border)">
 				<div style="font-size:12px;font-weight:600;margin-bottom:4px">${student.name}</div>
 				<div style="color:var(--muted)">${student.dependsOn}</div>
+				${isJobLost ? '<div style="color:var(--red);font-weight:600;margin-top:6px">⚠ JOB LOST</div>' : ''}
 			</div>
 			
 			<div style="margin-bottom:12px">
@@ -33,6 +57,7 @@ function showStudentReport(studentId) {
 				<div>Monthly: ${fmtMoney(monthlyIncome)}</div>
 			</div>
 			
+			${!isJobLost ? `
 			<div style="margin-bottom:12px">
 				<div style="color:var(--blue);font-weight:600;margin-bottom:6px">TAXES</div>
 				<div>Income tax: ${fmtMoney(incomeTax)}</div>
@@ -41,6 +66,7 @@ function showStudentReport(studentId) {
 				${consumptionTax > 0 ? `<div>Excise & tariffs: ${fmtMoney(consumptionTax)}</div>` : ''}
 				<div style="border-top:1px solid var(--border);padding-top:4px;margin-top:4px;font-weight:600">Total tax: ${fmtMoney(total)} (${effRate.toFixed(1)}% eff. rate)</div>
 			</div>
+			` : ''}
 			
 			<div style="margin-bottom:12px">
 				<div style="color:var(--blue);font-weight:600;margin-bottom:6px">MONTHLY BUDGET (${fmtMoney(monthlyIncome)}/month)</div>
