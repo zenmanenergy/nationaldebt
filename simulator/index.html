@@ -374,6 +374,91 @@ const spendingInfo = {
     title: 'Interest — Public Debt',
     description: 'Interest payments on federal debt held by the public (individuals, corporations, foreign governments). The largest growing budget item.',
     stakeholders: ['Bond investors', 'Foreign governments', 'Retirees', 'Financial markets']
+  },
+  debtIntra: {
+    title: 'Interest — Intragovernmental',
+    description: 'Interest paid on Treasury securities held by federal trust funds (Social Security, Medicare, retirement funds). Money transferred between government accounts.',
+    stakeholders: ['Social Security Trust Fund', 'Medicare Trust Fund', 'Federal employee pensions', 'Trust fund beneficiaries']
+  },
+  medicare: {
+    title: 'Medicare',
+    description: 'Federal health insurance program for seniors 65+ and some disabled individuals. Covers hospital (Part A), medical services (Part B), and drugs (Part D).',
+    stakeholders: ['Seniors (65+)', 'Disabled individuals', 'Hospitals', 'Doctors and clinics', 'Pharmacies']
+  },
+  ssRetirement: {
+    title: 'Social Security — Retirement Benefits',
+    description: 'Monthly payments to retired workers age 62+. Benefits based on earnings history and age at claim. Funded by payroll taxes (FICA), not income taxes.',
+    stakeholders: ['Retirees', 'Older workers', 'Spouses and survivors', 'Disabled beneficiaries']
+  },
+  ssDisability: {
+    title: 'Social Security — Disability Benefits',
+    description: 'Monthly payments to workers unable to work due to medical condition expected to last 12+ months. Funded by FICA payroll taxes.',
+    stakeholders: ['Disabled workers', 'Low-income workers', 'Workers with chronic conditions', 'Families of disabled workers']
+  },
+  ssSurvivor: {
+    title: 'Social Security — Survivor Benefits',
+    description: 'Monthly payments to widow(er)s, children, and dependents of deceased workers. Provides financial security to dependent families.',
+    stakeholders: ['Widows and widowers', 'Children of deceased workers', 'Dependent parents', 'Families']
+  },
+  eduSpecial: {
+    title: 'Special Education (IDEA)',
+    description: 'Funding for special education services required by the Individuals with Disabilities Education Act. Supports services for K-12 students with disabilities.',
+    stakeholders: ['Students with disabilities', 'Teachers', 'School districts', 'Special education providers']
+  },
+  infraTransit: {
+    title: 'Public Transit & Rail',
+    description: 'Federal funding for public buses, subways, light rail, and Amtrak. Supports urban transportation and reduces congestion.',
+    stakeholders: ['Transit riders', 'Public transit agencies', 'Construction workers', 'Urban commuters']
+  },
+  infraAirport: {
+    title: 'Airports & Aviation',
+    description: 'Federal funding for airport infrastructure, air traffic control, and aviation safety. Supports commercial and general aviation.',
+    stakeholders: ['Airlines', 'Airport workers', 'Travelers', 'Aviation companies']
+  },
+  infraWater: {
+    title: 'Water Infrastructure',
+    description: 'Federal grants for clean water systems, wastewater treatment, and water pipe replacement. Supports public health and environmental protection.',
+    stakeholders: ['Water utility companies', 'Municipalities', 'Construction workers', 'Water consumers']
+  },
+  sciNIH: {
+    title: 'National Institutes of Health',
+    description: 'Medical research funding for disease prevention and treatment. Supports grants to universities, hospital labs, and research institutions.',
+    stakeholders: ['Medical researchers', 'Universities', 'Hospitals', 'Patients with diseases']
+  },
+  sciEPA: {
+    title: 'EPA & Environment',
+    description: 'Environmental protection, pollution control, and climate monitoring. Enforces clean air and water regulations.',
+    stakeholders: ['Environmental agencies', 'States and cities', 'Environmentalists', 'Public health']
+  },
+  intlDiplo: {
+    title: 'Diplomatic & State Department',
+    description: 'Funding for US embassies, diplomatic staff, and international relations. Supports US foreign policy and presence abroad.',
+    stakeholders: ['State Department employees', 'US embassies', 'Foreign partners', 'International relations']
+  },
+  intlSec: {
+    title: 'International Security',
+    description: 'Military and security assistance to foreign allies. Supports defense partnerships and international stability.',
+    stakeholders: ['Foreign governments', 'US military', 'Allied nations', 'International security']
+  },
+  govIRS: {
+    title: 'IRS & Tax Collection',
+    description: 'Funding for the Internal Revenue Service to administer and collect federal taxes. Provides audits, enforcement, and taxpayer services.',
+    stakeholders: ['IRS employees', 'Taxpayers', 'Tax preparers', 'Tax compliance']
+  },
+  govCongress: {
+    title: 'Congress & Executive',
+    description: 'Salaries and operations for Congress members, Senate, House, and executive branch staff. Funds legislative and presidential operations.',
+    stakeholders: ['Congress members', 'Congressional staff', 'Executive staff', 'Government employees']
+  },
+  govGSA: {
+    title: 'General Services Administration',
+    description: 'Federal building management, federal vehicle fleet, and supplies. Supports day-to-day operations of federal agencies and properties.',
+    stakeholders: ['Federal employees', 'Facility workers', 'Government contractors', 'Agencies']
+  },
+  govOther: {
+    title: 'Other Federal Agencies',
+    description: 'Funding for various federal agencies including OSHA, SSA, USDA, Commerce, Labor, and others. Supports diverse government functions.',
+    stakeholders: ['Federal agencies', 'Agency employees', 'Program beneficiaries', 'Regulated industries']
   }
 };
 
@@ -701,15 +786,6 @@ function renderRevenue() {
       });
     })(key);
     
-    // Attach modal handler ONLY to the label
-    const label = row.querySelector('.rev-label');
-    (function(k) {
-      label.addEventListener('click', (e) => {
-        e.stopPropagation();
-        showModal(k, 'revenue');
-      });
-    })(key);
-    
     body.appendChild(row);
   }
 
@@ -739,14 +815,38 @@ function renderRevenue() {
     updateRevRate('capitalGainsTax', +e.target.value);
   });
   
-  const cgLabel = cgRow.querySelector('.rev-label');
-  cgLabel.addEventListener('click', (e) => {
-    e.stopPropagation();
-    showModal('capitalGainsTax', 'revenue');
-  });
-  
   body.appendChild(cgRow);
 }
+
+// Event delegation: handle clicks on revenue labels
+document.addEventListener('click', (e) => {
+  if (e.target.classList.contains('rev-label')) {
+    const row = e.target.closest('.rev-row');
+    if (row && row.querySelector('.rev-label')) {
+      const key = Array.from(state.revenue.keys || Object.keys(state.revenue)).find(k => {
+        const amt = state.revenue[k]?.baseAmount * state.revenue[k]?.rateMultiplier || 0;
+        const label = document.querySelector(`#rev-amt-${k}`);
+        return label && row.contains(label);
+      });
+      if (!key) {
+        // Try capital gains
+        if (row.querySelector('#rev-amt-capitalGainsTax')) {
+          if (revenueInfo['capitalGainsTax']) showModal('capitalGainsTax', 'revenue');
+          return;
+        }
+        // Find key by checking which one is in this row
+        for (const rkey in state.revenue) {
+          if (row.querySelector(`#rev-amt-${rkey}`)) {
+            if (revenueInfo[rkey]) showModal(rkey, 'revenue');
+            return;
+          }
+        }
+      } else if (revenueInfo[key]) {
+        showModal(key, 'revenue');
+      }
+    }
+  }
+});
 
 function renderSpending() {
   const body = document.getElementById('spending-body');
@@ -780,6 +880,7 @@ function renderSpending() {
 
       const row = document.createElement('div');
       row.className = `spend-row cat-${cat.color} ${locked?'locked-row':''}`;
+      row.dataset.itemKey = itemKey;
       row.innerHTML = `
         <span class="spend-label" title="${item.label}" style="cursor:pointer">${item.label}</span>
         <input type="range" class="spend-slider" min="0" max="1.5" step="0.01" value="${pct}"
@@ -795,19 +896,24 @@ function renderSpending() {
         updateSpend(catKey, itemKey, +e.target.value);
       });
       
-      const label = row.querySelector('.spend-label');
-      (function(k) {
-        label.addEventListener('click', (e) => {
-          e.stopPropagation();
-          showModal(k, 'spending');
-        });
-      })(itemKey);
-      
       rows.appendChild(row);
     }
     body.appendChild(rows);
   }
 }
+
+// Event delegation: handle clicks on spending labels
+document.addEventListener('click', (e) => {
+  if (e.target.classList.contains('spend-label')) {
+    const row = e.target.closest('.spend-row');
+    if (row) {
+      const itemKey = row.dataset.itemKey;
+      if (itemKey && spendingInfo[itemKey]) {
+        showModal(itemKey, 'spending');
+      }
+    }
+  }
+});
 
 function fmtMoney(n) {
   if (n >= 1e9)  return `$${(n/1e9).toFixed(2)}B`;
