@@ -148,6 +148,10 @@
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 renderRevenue();
 renderSpending();
+
+// Capture the initial state deficit as the true baseline BEFORE updateAll() runs
+window.INITIAL_DEFICIT = calcTotalRevenue() - calcTotalSpending();
+
 updateAll();
 addDebtTooltips();
 </script>

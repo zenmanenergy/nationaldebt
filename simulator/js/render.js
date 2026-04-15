@@ -479,7 +479,8 @@ function renderDeficit() {
 	const rev = calcTotalRevenue();
 	const spend = calcTotalSpending();
 	const gap = rev - spend;
-	const change = gap - BASELINE_DEFICIT;
+	const baselineVal = typeof window.INITIAL_DEFICIT !== 'undefined' ? window.INITIAL_DEFICIT : BASELINE_DEFICIT;
+	const change = gap - baselineVal;
 
 	const el = document.getElementById('deficit-number');
 	el.textContent = (gap >= 0 ? '+' : '') + formatB(gap);
