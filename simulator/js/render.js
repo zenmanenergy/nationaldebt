@@ -371,7 +371,10 @@ function renderJobs() {
 		const belowPoverty = afterTaxIncome < POVERTY_LEVEL_2025;
 
 		const card = document.createElement('div');
-		const affordability = calcAffordability(afterTaxIncome);
+		
+		// When job is lost, calculate affordability with $0 income
+		const displayAfterTaxForCalc = status === 'lost' ? 0 : afterTaxIncome;
+		const affordability = calcAffordability(displayAfterTaxForCalc);
 		const unaffordableItems = Object.entries(affordability.items)
 			.filter(([key, item]) => !item.canAfford)
 			.map(([key, item]) => {
@@ -399,14 +402,20 @@ function renderJobs() {
 			? `<div class="card-essentials">Cannot afford: ${unaffordableItems.join(', ')}</div>` 
 			: '';
 
+		// When job is lost, show $0 income
+		const displayIncome = status === 'lost' ? 0 : totalIncome;
+		const displayAfterTax = status === 'lost' ? 0 : afterTaxIncome;
+		const displayTax = status === 'lost' ? 0 : total;
+		const displayRate = status === 'lost' ? 0 : effRate;
+
 		card.innerHTML = `
 			<span class="card-status ${statusClass}">${statusLabel}</span>
 			<div class="card-name">${s.name}</div>
-			<div class="card-income">${fmtMoney(totalIncome)}</div>
-			<div class="card-tax">${fmtMoney(total)}</div>
+			<div class="card-income">${fmtMoney(displayIncome)}</div>
+			<div class="card-tax">${fmtMoney(displayTax)}</div>
 			${unaffordableDisplay}
-			<div class="card-after-tax">${fmtMoney(afterTaxIncome)}</div>
-			<div class="card-rate">${effRate.toFixed(1)}% eff. rate</div>
+			<div class="card-after-tax">${fmtMoney(displayAfterTax)}</div>
+			<div class="card-rate">${displayRate.toFixed(1)}% eff. rate</div>
 			${povertyIndicator}
 			<div class="card-dep">${s.dependsOn}</div>
 			<div class="job-lost-overlay">JOB LOST</div>
