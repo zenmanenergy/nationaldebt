@@ -3,11 +3,16 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Federal Budget Simulator</title>
+	<title>Solving America's Budget Crisis - Deficit & Debt Simulator</title>
 	<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 	<link rel="stylesheet" href="styles.css">
 </head>
 <body>
+<div class="header-bar">
+	<a href="https://www.roadsteadhighschool.com"><img src="images/roadstead.png" alt="Roadstead Montessori" class="header-logo"></a>
+	<div class="header-title">Solving America's Budget Crisis - Deficit & Debt Simulator</div>
+	<a href="#" onclick="startTutorial(); return false;" class="header-link">How to use this</a>
+</div>
 <div class="app">
 
 	<!-- TOP: Revenue + Spending -->
@@ -37,11 +42,6 @@
 	<!-- DEFICIT BAR -->
 	<div class="deficit-panel">
 		<div class="deficit-grid">
-			<div class="deficit-breakdown">
-				<span class="breakdown-rev">Rev: <span id="d-rev">$4,900B</span></span>
-				<span class="breakdown-spend">Spend: <span id="d-spend">$6,900B</span></span>
-				<span class="breakdown-gap">Gap: <span id="d-gap">-$2,000B</span></span>
-			</div>
 			<div class="deficit-main">
 				<div class="deficit-label">Deficit / Surplus</div>
 				<div class="deficit-number deficit" id="deficit-number">-$2,000B</div>
@@ -59,14 +59,6 @@
 					<div style="text-align:center;font-family:'IBM Plex Mono',monospace;font-size:9px;line-height:1.2;margin-top:4px">
 						<div style="color:var(--muted);font-size:8px">At current deficit:</div>
 						<div id="payoff-years" style="color:var(--red);font-weight:600">Debt increasing</div>
-					</div>
-				</div>
-				<div style="text-align:center;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);line-height:1.5">
-					<div style="margin-bottom:6px">
-						<div>On-budget deficit</div>
-						<div style="font-size:13px;color:var(--text)" id="baseline-deficit-display">-$1,134B</div>
-						<div style="margin-top:4px">Jobs at risk: <span id="jobs-at-risk-count" style="color:var(--amber)">0</span></div>
-						<div>Jobs lost: <span id="jobs-lost-count" style="color:var(--red)">0</span></div>
 					</div>
 				</div>
 				<div style="text-align:center;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);line-height:1.5">
@@ -116,6 +108,33 @@
 	</div>
 </div>
 
+<!-- Tutorial Overlay -->
+<div id="tutorial-overlay" class="tutorial-overlay">
+	<div class="tutorial-highlight"></div>
+	<div class="tutorial-box">
+		<div class="tutorial-header">
+			<div id="tutorial-step">Step 1 of 6</div>
+			<button onclick="closeTutorial()" class="tutorial-close">×</button>
+		</div>
+		<div class="tutorial-content">
+			<h3 id="tutorial-title">Revenue Sliders</h3>
+			<p id="tutorial-text">Use the sliders in the Revenue section to adjust tax rates. As you increase rates, the revenue collected increases. Watch how it affects the deficit!</p>
+		</div>
+		<div class="tutorial-footer">
+			<button onclick="tutorialPrev()" class="tutorial-btn tutorial-btn-secondary">← Back</button>
+			<div class="tutorial-dots">
+				<span class="dot active" onclick="goToStep(1)"></span>
+				<span class="dot" onclick="goToStep(2)"></span>
+				<span class="dot" onclick="goToStep(3)"></span>
+				<span class="dot" onclick="goToStep(4)"></span>
+				<span class="dot" onclick="goToStep(5)"></span>
+				<span class="dot" onclick="goToStep(6)"></span>
+			</div>
+			<button onclick="tutorialNext()" class="tutorial-btn">Next →</button>
+		</div>
+	</div>
+</div>
+
 <!-- Scripts in dependency order -->
 <script src="js/state.js"></script>
 <script src="js/calculations.js"></script>
@@ -123,6 +142,7 @@
 <script src="js/modal.js"></script>
 <script src="js/render.js"></script>
 <script src="js/events.js"></script>
+<script src="js/tutorial.js"></script>
 
 <script>
 // ─── INIT ─────────────────────────────────────────────────────────────────────

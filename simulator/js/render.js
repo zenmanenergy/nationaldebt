@@ -47,13 +47,37 @@ function renderRevenue() {
 			
 			body.appendChild(row);
 		} else {
-			row.innerHTML = `
-				<span class="rev-label" title="${r.label}" style="cursor:pointer">${r.label}</span>
-				<button class="type-badge ${r.type==='progressive'?'badge-prog':'badge-flat'}">${r.type==='progressive'?'PROG':'FLAT'}</button>
-				<input type="range" class="rev-slider" min="0" max="3" step="0.05" value="${r.rateMultiplier}">
-				<span class="rev-amount" id="rev-amt-${key}">${formatB(amt)}</span>
-				<span class="rev-pct" id="rev-pct-${key}">${pct}%</span>
-			`;
+			// Check if this progressive tax has brackets - if so, show Tax Brackets in place of slider
+			const brackets = key === 'individualIncomeTax' ? state.customBracketRates : (state.taxBrackets && state.taxBrackets[key]);
+			const hasProgressiveBrackets = brackets && r.type === 'progressive';
+			
+			if (hasProgressiveBrackets) {
+				const isExpanded = state.bracketsExpandedMap[key] === true;
+				
+				// Determine label based on tax type
+				let bracketsLabel = 'Tax Brackets';
+				if (key === 'exciseTax') bracketsLabel = 'Product Categories';
+				else if (key === 'customsTariffs') bracketsLabel = 'Import Categories';
+				else if (key === 'otherRevenue') bracketsLabel = 'Fee Types';
+				
+				row.innerHTML = `
+					<span class="rev-label" title="${r.label}" style="cursor:pointer">${r.label}</span>
+					<button class="type-badge ${r.type==='progressive'?'badge-prog':'badge-flat'}">${r.type==='progressive'?'PROG':'FLAT'}</button>
+					<div class="tax-brackets-toggle" style="padding:6px 12px;background:var(--panel);border-radius:3px;border:1px solid var(--border);cursor:pointer;user-select:none;display:flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--blue)">
+						<span style="font-size:11px">${isExpanded ? '▼' : '▶'}</span><span>${bracketsLabel}</span>
+					</div>
+					<span class="rev-amount" id="rev-amt-${key}">${formatB(amt)}</span>
+					<span class="rev-pct" id="rev-pct-${key}">${pct}%</span>
+				`;
+			} else {
+				row.innerHTML = `
+					<span class="rev-label" title="${r.label}" style="cursor:pointer">${r.label}</span>
+					<button class="type-badge ${r.type==='progressive'?'badge-prog':'badge-flat'}">${r.type==='progressive'?'PROG':'FLAT'}</button>
+					<input type="range" class="rev-slider" min="0" max="3" step="0.05" value="${r.rateMultiplier}">
+					<span class="rev-amount" id="rev-amt-${key}">${formatB(amt)}</span>
+					<span class="rev-pct" id="rev-pct-${key}">${pct}%</span>
+				`;
+			}
 			
 			const btn = row.querySelector('.type-badge');
 			(function(k) {
@@ -63,35 +87,43 @@ function renderRevenue() {
 				});
 			})(key);
 			
-			const slider = row.querySelector('.rev-slider');
-			(function(k) {
-				slider.addEventListener('input', (e) => {
-					e.stopPropagation();
-					updateRevRate(k, +e.target.value);
-				});
-			})(key);
+			if (!hasProgressiveBrackets) {
+				const slider = row.querySelector('.rev-slider');
+				(function(k) {
+					slider.addEventListener('input', (e) => {
+						e.stopPropagation();
+						updateRevRate(k, +e.target.value);
+					});
+				})(key);
+			}
 			
 			body.appendChild(row);
 			
 			// Add bracket sliders for any progressive tax with bracket data
-			const brackets = key === 'individualIncomeTax' ? state.customBracketRates : (state.taxBrackets && state.taxBrackets[key]);
-			if (brackets && r.type === 'progressive') {
+			if (hasProgressiveBrackets) {
 				const isExpanded = state.bracketsExpandedMap[key] === true;
+				
+				// Determine label based on tax type
+				let bracketsLabel = 'Tax Brackets';
+				if (key === 'exciseTax') bracketsLabel = 'Product Categories';
+				else if (key === 'customsTariffs') bracketsLabel = 'Import Categories';
+				else if (key === 'otherRevenue') bracketsLabel = 'Fee Types';
 				
 				const bracketsContainer = document.createElement('div');
 				bracketsContainer.style.cssText = 'display:' + (isExpanded ? 'block' : 'none');
 				
-				const expandBtn = document.createElement('div');
-				expandBtn.style.cssText = 'padding:6px 12px;margin-top:4px;font-family:"IBM Plex Mono",monospace;font-size:9px;color:var(--blue);cursor:pointer;user-select:none;display:flex;align-items:center;gap:6px';
-				expandBtn.innerHTML = `<span style="font-size:11px">${isExpanded ? '▼' : '▶'}</span><span>Tax Brackets</span>`;
-				expandBtn.addEventListener('click', () => {
+				const toggleBtn = row.querySelector('.tax-brackets-toggle');
+				toggleBtn.addEventListener('click', () => {
 					state.bracketsExpandedMap[key] = !state.bracketsExpandedMap[key];
 					if (state.bracketsExpandedMap[key] === undefined) state.bracketsExpandedMap[key] = false;
 					const exp = state.bracketsExpandedMap[key] === true;
 					bracketsContainer.style.display = exp ? 'block' : 'none';
-					expandBtn.innerHTML = `<span style="font-size:11px">${exp ? '▼' : '▶'}</span><span>Tax Brackets</span>`;
+					toggleBtn.innerHTML = `<span style="font-size:11px">${exp ? '▼' : '▶'}</span><span>${bracketsLabel}</span>`;
 				});
-				body.appendChild(expandBtn);
+				body.appendChild(bracketsContainer);
+				
+				// Set initial label
+				toggleBtn.innerHTML = `<span style="font-size:11px">${isExpanded ? '▼' : '▶'}</span><span>${bracketsLabel}</span>`;
 				
 				brackets.forEach((bracket, idx) => {
 					const bracketRow = document.createElement('div');
@@ -150,13 +182,29 @@ function renderRevenue() {
 		cgBadgeLabel = `FLAT ${(baseRate * cgR.rateMultiplier).toFixed(1)}%`;
 	}
 	
-	cgRow.innerHTML = `
-		<span class="rev-label" title="${cgR.label}" style="cursor:pointer">${cgR.label}</span>
-		<button class="type-badge ${cgBadgeClass}">${cgBadgeLabel}</button>
-		<input type="range" class="rev-slider" min="0" max="3" step="0.05" value="${cgR.rateMultiplier}">
-		<span class="rev-amount" id="rev-amt-capitalGainsTax">${formatB(cgDisplay)}</span>
-		<span class="rev-pct" id="rev-pct-capitalGainsTax">${cgPct}%</span>
-	`;
+	// Check if this should use Tax Brackets inline toggle (progressive & not ordinary)
+	const shouldUseCGBrackets = !state.cgAsOrdinary && cgR.type === 'progressive' && cgBrackets;
+	const cgIsExpanded = state.bracketsExpandedMap[cgKey] === true;
+	
+	if (shouldUseCGBrackets) {
+		cgRow.innerHTML = `
+			<span class="rev-label" title="${cgR.label}" style="cursor:pointer">${cgR.label}</span>
+			<button class="type-badge ${cgBadgeClass}">${cgBadgeLabel}</button>
+			<div class="tax-brackets-toggle" style="padding:6px 12px;background:var(--panel);border-radius:3px;border:1px solid var(--border);cursor:pointer;user-select:none;display:flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--blue)">
+				<span style="font-size:11px">${cgIsExpanded ? '▼' : '▶'}</span><span>Tax Brackets</span>
+			</div>
+			<span class="rev-amount" id="rev-amt-capitalGainsTax">${formatB(cgDisplay)}</span>
+			<span class="rev-pct" id="rev-pct-capitalGainsTax">${cgPct}%</span>
+		`;
+	} else {
+		cgRow.innerHTML = `
+			<span class="rev-label" title="${cgR.label}" style="cursor:pointer">${cgR.label}</span>
+			<button class="type-badge ${cgBadgeClass}">${cgBadgeLabel}</button>
+			<input type="range" class="rev-slider" min="0" max="3" step="0.05" value="${cgR.rateMultiplier}">
+			<span class="rev-amount" id="rev-amt-capitalGainsTax">${formatB(cgDisplay)}</span>
+			<span class="rev-pct" id="rev-pct-capitalGainsTax">${cgPct}%</span>
+		`;
+	}
 	
 	const cgBtn = cgRow.querySelector('.type-badge');
 	cgBtn.addEventListener('click', (e) => {
@@ -164,34 +212,33 @@ function renderRevenue() {
 		toggleCG();
 	});
 	
-	const cgSlider = cgRow.querySelector('.rev-slider');
-	cgSlider.addEventListener('input', (e) => {
-		e.stopPropagation();
-		if (cgR.type === 'flat' && !state.cgAsOrdinary) {
-			const newRate = (state.flatTaxRates[cgKey] * +e.target.value).toFixed(1);
-			cgBtn.textContent = `FLAT ${newRate}%`;
-		}
-		updateRevRate(cgKey, +e.target.value);
-	});
+	if (!shouldUseCGBrackets) {
+		const cgSlider = cgRow.querySelector('.rev-slider');
+		cgSlider.addEventListener('input', (e) => {
+			e.stopPropagation();
+			if (cgR.type === 'flat' && !state.cgAsOrdinary) {
+				const newRate = (state.flatTaxRates[cgKey] * +e.target.value).toFixed(1);
+				cgBtn.textContent = `FLAT ${newRate}%`;
+			}
+			updateRevRate(cgKey, +e.target.value);
+		});
+	}
 	
 	body.appendChild(cgRow);
 	
 	// Bracket sliders for progressive capital gains
 	if (!state.cgAsOrdinary && cgR.type === 'progressive' && cgBrackets) {
-		const isExpanded = state.bracketsExpandedMap[cgKey] === true;
 		const bracketsContainer = document.createElement('div');
-		bracketsContainer.style.cssText = 'display:' + (isExpanded ? 'block' : 'none');
+		bracketsContainer.style.cssText = 'display:' + (cgIsExpanded ? 'block' : 'none');
 		
-		const expandBtn = document.createElement('div');
-		expandBtn.style.cssText = 'padding:6px 12px;margin-top:4px;font-family:"IBM Plex Mono",monospace;font-size:9px;color:var(--blue);cursor:pointer;user-select:none;display:flex;align-items:center;gap:6px';
-		expandBtn.innerHTML = `<span style="font-size:11px">${isExpanded ? '▼' : '▶'}</span><span>Tax Brackets</span>`;
-		expandBtn.addEventListener('click', () => {
+		const toggleBtn = cgRow.querySelector('.tax-brackets-toggle');
+		toggleBtn.addEventListener('click', () => {
 			state.bracketsExpandedMap[cgKey] = !(state.bracketsExpandedMap[cgKey] === true);
 			const exp = state.bracketsExpandedMap[cgKey] === true;
 			bracketsContainer.style.display = exp ? 'block' : 'none';
-			expandBtn.innerHTML = `<span style="font-size:11px">${exp ? '▼' : '▶'}</span><span>Tax Brackets</span>`;
+			toggleBtn.innerHTML = `<span style="font-size:11px">${exp ? '▼' : '▶'}</span><span>Tax Brackets</span>`;
 		});
-		body.appendChild(expandBtn);
+		body.appendChild(bracketsContainer);
 		
 		cgBrackets.forEach((bracket, idx) => {
 			const bracketRow = document.createElement('div');
@@ -361,9 +408,6 @@ function renderJobs() {
 
 		grid.appendChild(card);
 	}
-
-	document.getElementById('jobs-at-risk-count').textContent = atRisk;
-	document.getElementById('jobs-lost-count').textContent = lost;
 }
 
 function renderDeficit() {
@@ -385,10 +429,7 @@ function renderDeficit() {
 		changeEl.style.color = change > 0 ? 'var(--green)' : 'var(--red)';
 	}
 
-	document.getElementById('d-rev').textContent = formatB(rev);
-	document.getElementById('d-spend').textContent = formatB(spend);
-	document.getElementById('d-gap').textContent = (gap >= 0 ? '+' : '') + formatB(gap);
-
+	
 	document.getElementById('rev-total-display').textContent = formatB(rev);
 	document.getElementById('spend-total-display').textContent = formatB(spend);
 	
