@@ -20,11 +20,43 @@ function calcPayrollTax(wages) {
 	const ssR = state.revenue.socialSecurity;
 	const medR = state.revenue.medicare;
 
-	const ssRate = 0.062 * ssR.rateMultiplier;
-	const ssCap = ssR.type === 'progressive' ? Infinity : 168600; // 2025 Social Security wage base limit
-	const ssTax = Math.min(wages, ssCap) * ssRate;
+	// Social Security tax
+	let ssTax = 0;
+	if (ssR.type === 'progressive' && state.taxBrackets.socialSecurity) {
+		// Progressive SS: apply bracket rates based on wage level, no cap
+		let cumulativeWages = 0;
+		for (const b of state.taxBrackets.socialSecurity) {
+			const bracketStart = cumulativeWages;
+			const bracketEnd = cumulativeWages + b.incomeMass;
+			const wagesInThisBracket = Math.max(0, Math.min(wages, bracketEnd) - bracketStart);
+			ssTax += wagesInThisBracket * b.rate * ssR.rateMultiplier;
+			cumulativeWages = bracketEnd;
+			if (wages <= cumulativeWages) break;
+		}
+	} else {
+		// Flat SS: apply 6.2% with wage cap
+		const ssRate = 0.062 * ssR.rateMultiplier;
+		const ssCap = 168600; // 2025 Social Security wage base limit
+		ssTax = Math.min(wages, ssCap) * ssRate;
+	}
 
-	const medTax = wages * 0.0145 * medR.rateMultiplier;
+	// Medicare tax
+	let medTax = 0;
+	if (medR.type === 'progressive' && state.taxBrackets.medicare) {
+		// Progressive Medicare: apply bracket rates based on wage level
+		let cumulativeWages = 0;
+		for (const b of state.taxBrackets.medicare) {
+			const bracketStart = cumulativeWages;
+			const bracketEnd = cumulativeWages + b.incomeMass;
+			const wagesInThisBracket = Math.max(0, Math.min(wages, bracketEnd) - bracketStart);
+			medTax += wagesInThisBracket * b.rate * medR.rateMultiplier;
+			cumulativeWages = bracketEnd;
+			if (wages <= cumulativeWages) break;
+		}
+	} else {
+		// Flat Medicare: apply 1.45% with no cap
+		medTax = wages * 0.0145 * medR.rateMultiplier;
+	}
 
 	return ssTax + medTax;
 }
@@ -40,17 +72,25 @@ function calcCGTax(cgIncome) {
 		const baseRate = state.flatTaxRates.capitalGainsTax / 100;
 		return cgIncome * baseRate * m;
 	}
-	
-	// Progressive capital gains tax using brackets
+
+	// Progressive capital gains tax using real income thresholds (2024)
 	let tax = 0;
-	const brackets = state.taxBrackets.capitalGainsTax;
-	if (brackets) {
-		for (const b of brackets) {
-			if (cgIncome <= b.min) break;
-			const amt = Math.min(cgIncome, b.max) - b.min;
-			tax += amt * b.rate * m;
-		}
+	
+	// Real capital gains tax brackets for 2024 (single filer thresholds)
+	const cgBrackets = [
+		{threshold: 0,      rate: 0.00},
+		{threshold: 47025,  rate: 0.15},
+		{threshold: 518900, rate: 0.20},
+	];
+	
+	for (let i = 0; i < cgBrackets.length; i++) {
+		const bracketStart = cgBrackets[i].threshold;
+		const bracketEnd = i < cgBrackets.length - 1 ? cgBrackets[i + 1].threshold : Infinity;
+		const gainsInThisBracket = Math.max(0, Math.min(cgIncome, bracketEnd) - bracketStart);
+		tax += gainsInThisBracket * cgBrackets[i].rate * m;
+		if (cgIncome <= bracketEnd) break;
 	}
+	
 	return tax;
 }
 
@@ -160,8 +200,17 @@ function cutPct(key) {
 }
 
 function calcSSDeficit() {
-	// Social Security revenue (affected by rateMultiplier)
-	const ssRevenue = state.revenue.socialSecurity.baseAmount * state.revenue.socialSecurity.rateMultiplier;
+	// Social Security revenue
+	let ssRevenue = 0;
+	const ssR = state.revenue.socialSecurity;
+	
+	if (ssR.type === 'progressive') {
+		// Use progressive brackets if enabled
+		ssRevenue = calcBracketRevenue('socialSecurity');
+	} else {
+		// Use flat rate with base amount and multiplier
+		ssRevenue = ssR.baseAmount * ssR.rateMultiplier;
+	}
 	
 	// Social Security spending (Retirement + Disability + Survivor)
 	const ssSpending = getSpendItem('ssRetirement').amount + 
@@ -172,8 +221,17 @@ function calcSSDeficit() {
 }
 
 function calcMedicareDeficit() {
-	// Medicare revenue (affected by rateMultiplier)
-	const medRevenue = state.revenue.medicare.baseAmount * state.revenue.medicare.rateMultiplier;
+	// Medicare revenue
+	let medRevenue = 0;
+	const medR = state.revenue.medicare;
+	
+	if (medR.type === 'progressive') {
+		// Use progressive brackets if enabled
+		medRevenue = calcBracketRevenue('medicare');
+	} else {
+		// Use flat rate with base amount and multiplier
+		medRevenue = medR.baseAmount * medR.rateMultiplier;
+	}
 	
 	// Medicare spending
 	const medSpending = getSpendItem('medicare').amount;
