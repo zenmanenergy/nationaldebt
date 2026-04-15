@@ -291,6 +291,70 @@ function indirectTooltip(student, status) {
 	return null;
 }
 
+function calcAffordability(afterTaxIncome) {
+	const monthlyIncome = afterTaxIncome / 12;
+	
+	// Calculate mortgage payment (principal + interest)
+	const loanAmount = HOMEOWNERSHIP.medianPrice * (1 - HOMEOWNERSHIP.downPaymentPct);
+	const monthlyRate = HOMEOWNERSHIP.interestRate / 12;
+	const monthlyMortgage = loanAmount * (monthlyRate * Math.pow(1 + monthlyRate, HOMEOWNERSHIP.loanTerm)) / (Math.pow(1 + monthlyRate, HOMEOWNERSHIP.loanTerm) - 1);
+	const monthlyPropertyTax = (HOMEOWNERSHIP.medianPrice * 0.008) / 12; // ~0.8% annual property tax
+	const monthlyHOInsurance = 150; // Homeowners insurance
+	const monthlyHomeOwnership = monthlyMortgage + monthlyPropertyTax + monthlyHOInsurance;
+	
+	// Check affordability cumulatively with priority order
+	let spending = 0;
+	const affordability = {
+		monthlyIncome,
+		items: {}
+	};
+	
+	// Priority 1: Food (essential)
+	spending += MONTHLY_EXPENSES.food;
+	affordability.items.food = { monthly: MONTHLY_EXPENSES.food, canAfford: spending <= monthlyIncome };
+	
+	// Priority 2: Housing (choose cheaper: rent or home ownership)
+	const cheaperHousing = Math.min(MONTHLY_EXPENSES.rent, monthlyHomeOwnership);
+	
+	// Offer both housing options but only count the cheaper one
+	affordability.items.rent = { 
+		monthly: MONTHLY_EXPENSES.rent, 
+		canAfford: (spending + MONTHLY_EXPENSES.rent) <= monthlyIncome 
+	};
+	affordability.items.homeOwnership = { 
+		monthly: monthlyHomeOwnership, 
+		canAfford: (spending + monthlyHomeOwnership) <= monthlyIncome 
+	};
+	
+	// For cumulative check, use whichever they're choosing (assume rent is default cheaper option)
+	spending += cheaperHousing;
+	
+	// Priority 3: Utilities (essential)
+	spending += MONTHLY_EXPENSES.utilities;
+	affordability.items.utilities = { monthly: MONTHLY_EXPENSES.utilities, canAfford: spending <= monthlyIncome };
+	
+	// Priority 4: Healthcare (essential)
+	spending += MONTHLY_EXPENSES.healthcare;
+	affordability.items.healthcare = { monthly: MONTHLY_EXPENSES.healthcare, canAfford: spending <= monthlyIncome };
+	
+	// Priority 5: Car (bundle: payment + gas + insurance)
+	const carBundle = MONTHLY_EXPENSES.carPayment + MONTHLY_EXPENSES.gasoline + MONTHLY_EXPENSES.carInsurance;
+	spending += carBundle;
+	affordability.items.carPayment = { monthly: MONTHLY_EXPENSES.carPayment, canAfford: (spending - carBundle + MONTHLY_EXPENSES.carPayment) <= monthlyIncome };
+	affordability.items.gasoline = { monthly: MONTHLY_EXPENSES.gasoline, canAfford: (spending - carBundle + MONTHLY_EXPENSES.carPayment + MONTHLY_EXPENSES.gasoline) <= monthlyIncome };
+	affordability.items.carInsurance = { monthly: MONTHLY_EXPENSES.carInsurance, canAfford: spending <= monthlyIncome };
+	
+	// Priority 6: Clothing (discretionary)
+	spending += MONTHLY_EXPENSES.clothing;
+	affordability.items.clothing = { monthly: MONTHLY_EXPENSES.clothing, canAfford: spending <= monthlyIncome };
+	
+	// Priority 7: Travel (discretionary)
+	spending += MONTHLY_EXPENSES.travel;
+	affordability.items.travel = { monthly: MONTHLY_EXPENSES.travel, canAfford: spending <= monthlyIncome };
+	
+	return affordability;
+}
+
 function formatB(n) {
 	if (Math.abs(n) >= 1000) return `$${(n/1000).toFixed(1)}T`;
 	return `$${Math.round(n)}B`;

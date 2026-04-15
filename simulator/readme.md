@@ -189,7 +189,7 @@ Shows all 12 student cards. Each card auto-calculates tax owed based on current 
 |---|---|---|---|---|
 | 1 | Part-time retail worker | \$22,000 | Private | Medicaid (uses it) |
 | 2 | Warehouse worker | \$38,000 | Private | Medicaid (uses it) |
-| 3 | Private school teacher | \$54,000 | Private | Federal education funding (indirect) |
+| 3 | Public school teacher | \$54,000 | Private | Federal education funding (indirect) |
 | 4 | Registered nurse | \$85,000 | Private | Medicare/Medicaid (employer revenue) |
 | 5 | Software engineer | \$140,000 | Private | None direct |
 | 6 | Physician | \$320,000 | Private | Medicare/Medicaid (employer revenue) |
@@ -233,7 +233,7 @@ Jobs are lost when spending on linked programs is cut below a threshold. Use the
 | Card 11 (Medicaid caseworker) | Medicaid cut >15% | Also: Card 1 and Card 2 lose healthcare coverage — highlight their cards |
 | Card 12 (Park ranger) | Science/Environment cut >25% | Also: nearby tourism businesses affected — tooltip |
 | Card 4 (nurse) | Medicare + Medicaid combined cut >30% | Hospital loses funding, nurse laid off |
-| Card 3 (private school teacher) | Federal education cut >40% | Indirect — competing public schools get cheaper, private school loses students |
+| Card 3 (public school teacher) | Federal education cut >40% | Indirect — competing public schools get cheaper, public school loses students |
 
 ### Indirect Job Loss — Restaurant / Business Ripple Effect
 

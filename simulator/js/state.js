@@ -5,6 +5,27 @@ const BASELINE_SPENDING = 4619;
 const BASELINE_DEFICIT = -1134;
 const STANDARD_DEDUCTION = 14600;
 const NATIONAL_DEBT = 39118; // $39.118 trillion as of 2026
+const POVERTY_LEVEL_2025 = 14580; // Federal poverty guideline for single person (Norfolk, Virginia area)
+
+// Monthly living expenses (Norfolk, Virginia area, 2025)
+const MONTHLY_EXPENSES = {
+	rent: 1321,           // Median monthly rent
+	food: 350,            // USDA food plan for single adult
+	utilities: 150,       // Avg electric, gas, water
+	carPayment: 450,      // Avg vehicle loan
+	gasoline: 175,        // Avg fuel costs
+	carInsurance: 120,    // Auto insurance
+	healthcare: 200,      // Health insurance + copays
+	clothing: 75,         // Basic clothing budget
+	travel: 150,          // Entertainment, misc travel
+};
+
+const HOMEOWNERSHIP = {
+	medianPrice: 289900,
+	downPaymentPct: 0.20,
+	loanTerm: 360,        // 30 years in months
+	interestRate: 0.065,  // 6.5% mortgage rate
+};
 
 const brackets2025 = [
 	{min:0,       max:11600,   rate:0.10,  label:'10%'},
@@ -436,7 +457,7 @@ const state = {
 const students = [
 	{id:1,  name:'Part-time Retail Worker',  income:22000,      sector:'private', dependsOn:'Medicaid',                  depKey:'medicaid',    cgIncome:0},
 	{id:2,  name:'Warehouse Worker',          income:38000,      sector:'private', dependsOn:'Medicaid',                  depKey:'medicaid',    cgIncome:0},
-	{id:3,  name:'Private School Teacher',    income:54000,      sector:'private', dependsOn:'Federal Education (indirect)',depKey:'education',  cgIncome:0},
+	{id:3,  name:'Public School Teacher',    income:54000,      sector:'private', dependsOn:'Federal Education (indirect)',depKey:'education',  cgIncome:0},
 	{id:4,  name:'Registered Nurse',          income:85000,      sector:'private', dependsOn:'Medicare/Medicaid',         depKey:'nurse',       cgIncome:0},
 	{id:5,  name:'Software Engineer',         income:140000,     sector:'private', dependsOn:'None',                      depKey:null,          cgIncome:0},
 	{id:6,  name:'Physician',                 income:320000,     sector:'private', dependsOn:'Medicare/Medicaid',         depKey:'nurse',       cgIncome:0},

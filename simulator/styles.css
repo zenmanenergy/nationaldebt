@@ -27,7 +27,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 	font-family:'IBM Plex Sans',sans-serif;
 	letter-spacing:-0.3px;
 }
-.app{display:grid;grid-template-rows:1fr auto auto;height:calc(100vh - 50px);gap:4px;padding:4px}
+.app{display:grid;grid-template-rows:1fr 115px 285px;height:calc(100vh - 50px);gap:4px;padding:4px}
 .top-panels{display:grid;grid-template-columns:1fr 1fr;gap:4px;min-height:0;overflow:hidden}
 .panel{background:var(--panel);border:1px solid var(--border);border-radius:6px;overflow:hidden;display:flex;flex-direction:column}
 .panel-header{padding:6px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-shrink:0}
@@ -100,9 +100,12 @@ input[type="number"]:focus, input[type="text"]:focus{outline:none;border-color:v
 
 
 /* Jobs panel */
-.jobs-panel{background:var(--panel);border:1px solid var(--border);border-radius:6px;overflow:hidden}
-.jobs-header{padding:5px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
-.jobs-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;padding:4px}
+.jobs-panel{background:var(--panel);border:1px solid var(--border);border-radius:6px;overflow:hidden;display:flex;flex-direction:column}
+.jobs-header{padding:5px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-shrink:0}
+.jobs-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;padding:4px;overflow-y:auto;flex:1;align-content:start;min-height:0}
+.jobs-grid::-webkit-scrollbar{width:4px}
+.jobs-grid::-webkit-scrollbar-track{background:transparent}
+.jobs-grid::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
 .student-card{background:#1c2128;border:1px solid var(--border);border-radius:5px;padding:5px 6px;position:relative;transition:all .3s;cursor:pointer}
 .student-card:hover{border-color:var(--blue)}
 .student-card.at-risk{border-color:var(--amber)!important;background:#1f1a10}
@@ -114,11 +117,15 @@ input[type="number"]:focus, input[type="text"]:focus{outline:none;border-color:v
 .card-name{font-size:12px;font-weight:600;color:var(--text);line-height:1.2;padding-right:30px}
 .card-income{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);margin-top:1px}
 .card-tax{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:700;color:var(--blue);margin-top:2px}
+.card-after-tax{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);margin-top:1px}
+.card-essentials{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--green);margin-top:2px;font-weight:600}
 .card-rate{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted)}
 .card-dep{font-size:10px;color:var(--muted);margin-top:2px;line-height:1.2}
+.poverty-indicator{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;color:var(--red);margin-top:3px;padding:2px 4px;background:rgba(248,81,73,0.1);border:1px solid rgba(248,81,73,0.3);border-radius:2px;text-transform:uppercase;letter-spacing:.05em}
+.student-card.below-poverty{border-color:var(--red)!important;background:#1a1010}
 
 /* Tooltip */
-.tooltip{position:fixed;background:#21262d;border:1px solid var(--border);border-radius:5px;padding:8px 10px;font-size:10px;max-width:220px;z-index:1000;pointer-events:none;box-shadow:0 4px 12px rgba(0,0,0,.5);line-height:1.4;display:none}
+.tooltip{position:fixed;background:#21262d;border:1px solid var(--border);border-radius:5px;padding:8px 10px;font-size:10px;max-width:300px;z-index:1000;pointer-events:none;box-shadow:0 4px 12px rgba(0,0,0,.5);line-height:1.4;display:none}
 .tooltip.visible{display:block}
 
 /* Reset button */
@@ -269,7 +276,7 @@ input[type="number"]:focus, input[type="text"]:focus{outline:none;border-color:v
 /* Modal popup */
 .modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.7);z-index:2000;align-items:center;justify-content:center}
 .modal.visible{display:flex}
-.modal-content{background:var(--panel);border:1px solid var(--border);border-radius:8px;max-width:500px;max-height:80vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.8)}
+.modal-content{background:var(--panel);border:1px solid var(--border);border-radius:8px;max-width:700px;max-height:90vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.8)}
 .modal-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);flex-shrink:0}
 .modal-title{font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:var(--blue)}
 .modal-close{font-size:28px;cursor:pointer;color:var(--muted);transition:color .2s}

@@ -367,41 +367,98 @@ function renderJobs() {
 
 		const {incomeTax, payroll, cgTax, consumptionTax, total, effRate} = calcStudentTax(s);
 		const totalIncome = s.income + s.cgIncome;
+		const afterTaxIncome = totalIncome - total;
+		const belowPoverty = afterTaxIncome < POVERTY_LEVEL_2025;
 
 		const card = document.createElement('div');
-		card.className = `student-card ${status === 'risk' ? 'at-risk' : status === 'lost' ? 'job-lost' : ''}`;
+		card.className = `student-card ${status === 'risk' ? 'at-risk' : status === 'lost' ? 'job-lost' : ''} ${belowPoverty ? 'below-poverty' : ''}`;
 		card.dataset.studentId = s.id;
 
 		const statusLabel = status === 'ok' ? 'OK' : status === 'risk' ? 'AT RISK' : 'JOB LOST';
 		const statusClass  = status === 'ok' ? 'status-ok' : status === 'risk' ? 'status-risk' : 'status-lost';
+		const povertyIndicator = belowPoverty ? '<div class="poverty-indicator">BELOW POVERTY LEVEL</div>' : '';
+		
+		const affordability = calcAffordability(afterTaxIncome);
+		const unaffordableItems = Object.entries(affordability.items)
+			.filter(([key, item]) => !item.canAfford)
+			.map(([key, item]) => {
+				const expenseNames = {
+					food: 'Food',
+					rent: 'Rent',
+					homeOwnership: 'Home',
+					carPayment: 'Car',
+					gasoline: 'Gas',
+					carInsurance: 'Insurance',
+					utilities: 'Utilities',
+					healthcare: 'Healthcare',
+					clothing: 'Clothing',
+					travel: 'Travel'
+				};
+				return expenseNames[key];
+			});
+		const unaffordableDisplay = unaffordableItems.length > 0 
+			? `<div class="card-essentials">Cannot afford: ${unaffordableItems.join(', ')}</div>` 
+			: '';
 
 		card.innerHTML = `
 			<span class="card-status ${statusClass}">${statusLabel}</span>
 			<div class="card-name">${s.name}</div>
 			<div class="card-income">${fmtMoney(totalIncome)}</div>
 			<div class="card-tax">${fmtMoney(total)}</div>
+			${unaffordableDisplay}
+			<div class="card-after-tax">${fmtMoney(afterTaxIncome)}</div>
 			<div class="card-rate">${effRate.toFixed(1)}% eff. rate</div>
+			${povertyIndicator}
 			<div class="card-dep">${s.dependsOn}</div>
 			<div class="job-lost-overlay">JOB LOST</div>
 		`;
 
 		const indirect = indirectTooltip(s, status);
+		
 		const itLabel = state.revenue.individualIncomeTax.type === 'flat' ? 'Income tax (flat)' : 'Income tax (prog)';
 		const ssRate = (0.062 * state.revenue.socialSecurity.rateMultiplier * 100).toFixed(2);
 		const medRate = (0.0145 * state.revenue.medicare.rateMultiplier * 100).toFixed(2);
 		const ssCap = state.revenue.socialSecurity.type === 'progressive' ? s.income : 168600;
 		const ssTaxAmt = Math.min(s.income, ssCap) * 0.062 * state.revenue.socialSecurity.rateMultiplier;
 		const medTaxAmt = s.income * 0.0145 * state.revenue.medicare.rateMultiplier;
+		
 		let tipLines = [
 			`${itLabel}: ${fmtMoney(incomeTax)}`,
 			`SS payroll (${ssRate}%): ${fmtMoney(ssTaxAmt)} + Medicare (${medRate}%): ${fmtMoney(medTaxAmt)}`,
 		];
 		if (s.cgIncome > 0) tipLines.push(`Capital gains tax: ${fmtMoney(cgTax)} (${state.cgAsOrdinary?'ordinary rates':'CG rates'})`);
 		if (consumptionTax > 0) tipLines.push(`Excise & tariffs: ${fmtMoney(consumptionTax)} (embedded in prices)`);
-		tipLines.push(`Total: ${fmtMoney(total)} | Eff. rate: ${effRate.toFixed(1)}%`);
+		tipLines.push('');
+		tipLines.push(`Total tax: ${fmtMoney(total)} | Eff. rate: ${effRate.toFixed(1)}%`);
+		tipLines.push(`After-tax income: ${fmtMoney(afterTaxIncome)}`);
+		tipLines.push(`Monthly income: ${fmtMoney(affordability.monthlyIncome)}`);
+		
+		if (belowPoverty) tipLines.push(`⚠ Below poverty level ($${POVERTY_LEVEL_2025.toLocaleString()})`);
+		
+		tipLines.push('', '─ MONTHLY AFFORDABILITY ─');
+		const expenseNames = {
+			food: 'Food',
+			rent: 'Rent',
+			homeOwnership: 'Home Ownership',
+			carPayment: 'Car Payment',
+			gasoline: 'Gasoline',
+			carInsurance: 'Car Insurance',
+			utilities: 'Utilities',
+			healthcare: 'Healthcare',
+			clothing: 'Clothing',
+			travel: 'Travel/Entertainment'
+		};
+		
+		for (const [key, item] of Object.entries(affordability.items)) {
+			const affordStatus = item.canAfford ? '✓' : '✗';
+			const label = expenseNames[key];
+			tipLines.push(`${affordStatus} ${label}: ${fmtMoney(item.monthly)}/mo`);
+		}
+		
 		if (indirect) tipLines.push('', indirect);
 		const tipText = tipLines.join('\n');
 
+		card.addEventListener('click', () => showStudentReport(s.id));
 		card.addEventListener('mouseenter', (e) => showTooltip(e, tipText));
 		card.addEventListener('mousemove', moveTooltip);
 		card.addEventListener('mouseleave', hideTooltip);
