@@ -24,14 +24,10 @@ function calcPayrollTax(wages) {
 	let ssTax = 0;
 	if (ssR.type === 'progressive' && state.taxBrackets.socialSecurity) {
 		// Progressive SS: apply bracket rates based on wage level, no cap
-		let cumulativeWages = 0;
 		for (const b of state.taxBrackets.socialSecurity) {
-			const bracketStart = cumulativeWages;
-			const bracketEnd = cumulativeWages + b.incomeMass;
-			const wagesInThisBracket = Math.max(0, Math.min(wages, bracketEnd) - bracketStart);
+			const wagesInThisBracket = Math.max(0, Math.min(wages, b.max) - b.min);
 			ssTax += wagesInThisBracket * b.rate * ssR.rateMultiplier;
-			cumulativeWages = bracketEnd;
-			if (wages <= cumulativeWages) break;
+			if (wages <= b.max) break;
 		}
 	} else {
 		// Flat SS: apply 6.2% with wage cap
@@ -44,14 +40,10 @@ function calcPayrollTax(wages) {
 	let medTax = 0;
 	if (medR.type === 'progressive' && state.taxBrackets.medicare) {
 		// Progressive Medicare: apply bracket rates based on wage level
-		let cumulativeWages = 0;
 		for (const b of state.taxBrackets.medicare) {
-			const bracketStart = cumulativeWages;
-			const bracketEnd = cumulativeWages + b.incomeMass;
-			const wagesInThisBracket = Math.max(0, Math.min(wages, bracketEnd) - bracketStart);
+			const wagesInThisBracket = Math.max(0, Math.min(wages, b.max) - b.min);
 			medTax += wagesInThisBracket * b.rate * medR.rateMultiplier;
-			cumulativeWages = bracketEnd;
-			if (wages <= cumulativeWages) break;
+			if (wages <= b.max) break;
 		}
 	} else {
 		// Flat Medicare: apply 1.45% with no cap

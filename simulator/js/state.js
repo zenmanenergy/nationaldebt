@@ -387,21 +387,21 @@ const state = {
 		// masses calibrated so sum(mass * defaultRate) = baseAmount for each tax
 		socialSecurity: [
 			// progressive version removes wage cap and allows higher rates on top earners
-			{rate:0.062, incomeMass:1100,  label:'$0 - $30K wages'},
-			{rate:0.062, incomeMass:3200,  label:'$30K - $75K wages'},
-			{rate:0.062, incomeMass:2900,  label:'$75K - $168.6K wages (cap)'},
-			{rate:0.062, incomeMass:3245,  label:'$168.6K - $400K wages'},
-			{rate:0.062, incomeMass:2900,  label:'$400K - $1M wages'},
-			{rate:0.062, incomeMass:4800,  label:'$1M+ wages'},
+			{min:0,        max:30000,   rate:0.062, incomeMass:1100,  label:'$0 - $30K wages'},
+			{min:30000,    max:75000,   rate:0.062, incomeMass:3200,  label:'$30K - $75K wages'},
+			{min:75000,    max:168600,  rate:0.062, incomeMass:2900,  label:'$75K - $168.6K wages (cap)'},
+			{min:168600,   max:400000,  rate:0.062, incomeMass:3245,  label:'$168.6K - $400K wages'},
+			{min:400000,   max:1000000, rate:0.062, incomeMass:2900,  label:'$400K - $1M wages'},
+			{min:1000000,  max:Infinity,rate:0.062, incomeMass:4800,  label:'$1M+ wages'},
 		],
 		medicare: [
 			// progressive version allows surtax tiers on high earners
-			{rate:0.029, incomeMass:2000,  label:'$0 - $50K wages'},
-			{rate:0.029, incomeMass:3500,  label:'$50K - $150K wages'},
-			{rate:0.029, incomeMass:2800,  label:'$150K - $400K wages'},
-			{rate:0.029, incomeMass:2500,  label:'$400K - $1M wages'},
-			{rate:0.029, incomeMass:1800,  label:'$1M - $5M wages'},
-			{rate:0.029, incomeMass:1538,  label:'$5M+ wages'},
+			{min:0,        max:50000,   rate:0.029, incomeMass:2000,  label:'$0 - $50K wages'},
+			{min:50000,    max:150000,  rate:0.029, incomeMass:3500,  label:'$50K - $150K wages'},
+			{min:150000,   max:400000,  rate:0.029, incomeMass:2800,  label:'$150K - $400K wages'},
+			{min:400000,   max:1000000, rate:0.029, incomeMass:2500,  label:'$400K - $1M wages'},
+			{min:1000000,  max:5000000, rate:0.029, incomeMass:1800,  label:'$1M - $5M wages'},
+			{min:5000000,  max:Infinity,rate:0.029, incomeMass:1538,  label:'$5M+ wages'},
 		],
 		corporateIncomeTax: [
 			// by corporate profit tier, masses calibrated to sum to $2,571B at 21% = $540B
