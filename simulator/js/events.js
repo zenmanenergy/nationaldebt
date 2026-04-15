@@ -12,11 +12,19 @@ function toggleRevType(key) {
 }
 
 function toggleCG() {
-	state.cgAsOrdinary = !state.cgAsOrdinary;
-	if (state.cgAsOrdinary) {
-		state.revenue.capitalGainsTax.rateMultiplier = 1.5;
+	const cgR = state.revenue.capitalGainsTax;
+	// Cycle: FLAT -> PROG -> ORDINARY -> FLAT
+	if (!state.cgAsOrdinary && cgR.type === 'flat') {
+		cgR.type = 'progressive';
+		cgR.rateMultiplier = 1.0;
+	} else if (!state.cgAsOrdinary && cgR.type === 'progressive') {
+		cgR.type = 'flat';
+		state.cgAsOrdinary = true;
+		cgR.rateMultiplier = 1.5;
 	} else {
-		state.revenue.capitalGainsTax.rateMultiplier = 1.0;
+		state.cgAsOrdinary = false;
+		cgR.type = 'flat';
+		cgR.rateMultiplier = 1.0;
 	}
 	updateAll();
 }

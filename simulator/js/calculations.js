@@ -21,7 +21,7 @@ function calcPayrollTax(wages) {
 	const medR = state.revenue.medicare;
 
 	const ssRate = 0.062 * ssR.rateMultiplier;
-	const ssCap = ssR.type === 'progressive' ? Infinity : 184500;
+	const ssCap = ssR.type === 'progressive' ? Infinity : 168600; // 2025 Social Security wage base limit
 	const ssTax = Math.min(wages, ssCap) * ssRate;
 
 	const medTax = wages * 0.0145 * medR.rateMultiplier;
@@ -31,12 +31,25 @@ function calcPayrollTax(wages) {
 
 function calcCGTax(cgIncome) {
 	if (state.cgAsOrdinary) return calcIncomeTax(cgIncome);
-	const m = state.revenue.individualIncomeTax.rateMultiplier;
+	
+	const cgR = state.revenue.capitalGainsTax;
+	const m = cgR.rateMultiplier;
+	
+	// Flat capital gains tax
+	if (cgR.type === 'flat') {
+		const baseRate = state.flatTaxRates.capitalGainsTax / 100;
+		return cgIncome * baseRate * m;
+	}
+	
+	// Progressive capital gains tax using brackets
 	let tax = 0;
-	for (const b of cgRates) {
-		if (cgIncome <= b.min) break;
-		const amt = Math.min(cgIncome, b.max) - b.min;
-		tax += amt * b.rate * m;
+	const brackets = state.taxBrackets.capitalGainsTax;
+	if (brackets) {
+		for (const b of brackets) {
+			if (cgIncome <= b.min) break;
+			const amt = Math.min(cgIncome, b.max) - b.min;
+			tax += amt * b.rate * m;
+		}
 	}
 	return tax;
 }
@@ -45,20 +58,53 @@ function calcStudentTax(student) {
 	const incomeTax = calcIncomeTax(student.income);
 	const payroll = calcPayrollTax(student.income);
 	const cgTax = calcCGTax(student.cgIncome);
-	const total = incomeTax + payroll + cgTax;
+	
+	// Consumption-based taxes: excise + tariffs combined
+	let consumptionTax = calcConsumptionTax(student);
+	
+	const total = incomeTax + payroll + cgTax + consumptionTax;
 	const totalIncome = student.income + student.cgIncome;
 	const effRate = totalIncome > 0 ? (total / totalIncome) * 100 : 0;
-	return { incomeTax, payroll, cgTax, total, effRate };
+	return { incomeTax, payroll, cgTax, consumptionTax, total, effRate };
 }
 
-// Returns total individual income tax revenue in billions using real bracket income masses
-function calcIncomeTaxBracketRevenue() {
-	const m = state.revenue.individualIncomeTax.rateMultiplier;
+function calcConsumptionTax(student) {
+	// Combined excise + tariffs: realistic ~1% effective rate on consumption
+	const exciseR = state.revenue.exciseTax;
+	const tariffR = state.revenue.customsTariffs;
+	
+	const totalIncome = student.income + student.cgIncome;
+	
+	// Estimate consumption as % of income (lower income = higher consumption %age)
+	let consumptionRate = 0.75;
+	if (totalIncome < 30000) consumptionRate = 0.98;
+	else if (totalIncome < 50000) consumptionRate = 0.95;
+	else if (totalIncome < 100000) consumptionRate = 0.85;
+	else if (totalIncome > 1000000) consumptionRate = 0.85;
+	else consumptionRate = 0.80;
+	
+	const consumption = totalIncome * consumptionRate;
+	
+	// Base combined consumption tax rate: ~1% (conservative estimate)
+	const baseRate = 0.01 * (exciseR.rateMultiplier + tariffR.rateMultiplier) / 2;
+	
+	return consumption * baseRate;
+}
+
+// Returns bracket revenue for any tax with bracket data, in billions
+function calcBracketRevenue(key) {
+	const brackets = key === 'individualIncomeTax' ? state.customBracketRates : state.taxBrackets[key];
+	if (!brackets) return 0;
+	const m = state.revenue[key].rateMultiplier;
 	let total = 0;
-	for (const b of state.customBracketRates) {
+	for (const b of brackets) {
 		total += b.incomeMass * b.rate * m;
 	}
 	return total;
+}
+
+function calcIncomeTaxBracketRevenue() {
+	return calcBracketRevenue('individualIncomeTax');
 }
 
 function calcTotalRevenue() {
@@ -66,8 +112,9 @@ function calcTotalRevenue() {
 	for (const [k, r] of Object.entries(state.revenue)) {
 		if (k === 'socialSecurity' || k === 'medicare') continue;
 		
-		if (k === 'individualIncomeTax' && r.type === 'progressive') {
-			total += calcIncomeTaxBracketRevenue();
+		const hasBrackets = k === 'individualIncomeTax' ? true : !!(state.taxBrackets && state.taxBrackets[k]);
+		if (hasBrackets && r.type === 'progressive') {
+			total += calcBracketRevenue(k);
 			continue;
 		}
 		
@@ -110,6 +157,28 @@ function cutPct(key) {
 	const item = getSpendItem(key);
 	if (!item) return 0;
 	return (item.baseline - item.amount) / item.baseline;
+}
+
+function calcSSDeficit() {
+	// Social Security revenue (affected by rateMultiplier)
+	const ssRevenue = state.revenue.socialSecurity.baseAmount * state.revenue.socialSecurity.rateMultiplier;
+	
+	// Social Security spending (Retirement + Disability + Survivor)
+	const ssSpending = getSpendItem('ssRetirement').amount + 
+	                     getSpendItem('ssDisability').amount + 
+	                     getSpendItem('ssSurvivor').amount;
+	
+	return ssRevenue - ssSpending; // negative = deficit
+}
+
+function calcMedicareDeficit() {
+	// Medicare revenue (affected by rateMultiplier)
+	const medRevenue = state.revenue.medicare.baseAmount * state.revenue.medicare.rateMultiplier;
+	
+	// Medicare spending
+	const medSpending = getSpendItem('medicare').amount;
+	
+	return medRevenue - medSpending; // negative = deficit
 }
 
 function checkJobStatus(student) {

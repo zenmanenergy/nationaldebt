@@ -361,7 +361,76 @@ const state = {
 		{rate: 0.37, min: 5000000,  max: 10000000,incomeMass: 152,   label: '$5M - $10M'},
 		{rate: 0.37, min: 10000000, max: Infinity, incomeMass: 315,  label: '$10M+'},
 	],
-	bracketsExpanded: true,
+	bracketsExpandedMap: {},
+	taxBrackets: {
+		// masses calibrated so sum(mass * defaultRate) = baseAmount for each tax
+		socialSecurity: [
+			// progressive version removes wage cap and allows higher rates on top earners
+			{rate:0.062, incomeMass:1100,  label:'$0 - $30K wages'},
+			{rate:0.062, incomeMass:3200,  label:'$30K - $75K wages'},
+			{rate:0.062, incomeMass:2900,  label:'$75K - $168.6K wages (cap)'},
+			{rate:0.062, incomeMass:3245,  label:'$168.6K - $400K wages'},
+			{rate:0.062, incomeMass:2900,  label:'$400K - $1M wages'},
+			{rate:0.062, incomeMass:4800,  label:'$1M+ wages'},
+		],
+		medicare: [
+			// progressive version allows surtax tiers on high earners
+			{rate:0.029, incomeMass:2000,  label:'$0 - $50K wages'},
+			{rate:0.029, incomeMass:3500,  label:'$50K - $150K wages'},
+			{rate:0.029, incomeMass:2800,  label:'$150K - $400K wages'},
+			{rate:0.029, incomeMass:2500,  label:'$400K - $1M wages'},
+			{rate:0.029, incomeMass:1800,  label:'$1M - $5M wages'},
+			{rate:0.029, incomeMass:1538,  label:'$5M+ wages'},
+		],
+		corporateIncomeTax: [
+			// by corporate profit tier, masses calibrated to sum to $2,571B at 21% = $540B
+			{rate:0.21, incomeMass:150,   label:'< $1M profit (small biz)'},
+			{rate:0.21, incomeMass:300,   label:'$1M - $10M profit'},
+			{rate:0.21, incomeMass:450,   label:'$10M - $100M profit'},
+			{rate:0.21, incomeMass:600,   label:'$100M - $1B profit'},
+			{rate:0.21, incomeMass:1071,  label:'$1B+ profit (mega corp)'},
+		],
+		exciseTax: [
+			// by product category, masses calibrated to $836B at 11% = $92B
+			{rate:0.11, incomeMass:280,   label:'Fuel & energy'},
+			{rate:0.11, incomeMass:120,   label:'Alcohol & tobacco'},
+			{rate:0.11, incomeMass:100,   label:'Aviation & transport'},
+			{rate:0.11, incomeMass:180,   label:'Telecom'},
+			{rate:0.11, incomeMass:156,   label:'Other goods'},
+		],
+		estateGiftTax: [
+			// by estate value over exemption, masses calibrated to $90B at 40% = $36B
+			{rate:0.40, incomeMass:15,    label:'< $1M over exemption'},
+			{rate:0.40, incomeMass:18,    label:'$1M - $5M over exemption'},
+			{rate:0.40, incomeMass:22,    label:'$5M - $20M over exemption'},
+			{rate:0.40, incomeMass:20,    label:'$20M - $100M over exemption'},
+			{rate:0.40, incomeMass:15,    label:'$100M+ over exemption'},
+		],
+		customsTariffs: [
+			// by import category, masses calibrated to $1,925B at 4% = $77B
+			{rate:0.04, incomeMass:300,   label:'Low-value consumer goods'},
+			{rate:0.04, incomeMass:500,   label:'Consumer electronics & apparel'},
+			{rate:0.04, incomeMass:525,   label:'Industrial equipment'},
+			{rate:0.04, incomeMass:350,   label:'Vehicles & auto parts'},
+			{rate:0.04, incomeMass:250,   label:'Agricultural & food'},
+		],
+		otherRevenue: [
+			// by fee/charge type, masses calibrated to $8,500B at 2% = $170B
+			{rate:0.02, incomeMass:1200,  label:'Federal fees & licenses'},
+			{rate:0.02, incomeMass:1800,  label:'Fines & penalties'},
+			{rate:0.02, incomeMass:2200,  label:'Federal enterprise revenue'},
+			{rate:0.02, incomeMass:1600,  label:'Rents & royalties (public land)'},
+			{rate:0.02, incomeMass:1700,  label:'Miscellaneous receipts'},
+		],
+		capitalGainsTax: [
+			// by gain size tier, calibrated to $800B at 15% = $120B
+			{rate:0.00, incomeMass:400,   label:'$0 - $47K gains (0% tier)'},
+			{rate:0.15, incomeMass:260,   label:'$47K - $518.9K gains'},
+			{rate:0.15, incomeMass:90,    label:'$518.9K - $2M gains'},
+			{rate:0.20, incomeMass:30,    label:'$2M - $10M gains'},
+			{rate:0.20, incomeMass:20,    label:'$10M+ gains'},
+		],
+	},
 };
 
 const students = [

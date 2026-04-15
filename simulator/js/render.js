@@ -73,25 +73,29 @@ function renderRevenue() {
 			
 			body.appendChild(row);
 			
-			// Add bracket sliders for progressive income tax
-			if (key === 'individualIncomeTax' && r.type === 'progressive') {
+			// Add bracket sliders for any progressive tax with bracket data
+			const brackets = key === 'individualIncomeTax' ? state.customBracketRates : (state.taxBrackets && state.taxBrackets[key]);
+			if (brackets && r.type === 'progressive') {
+				const isExpanded = state.bracketsExpandedMap[key] === true;
+				
 				const bracketsContainer = document.createElement('div');
-				bracketsContainer.id = 'brackets-container';
-				bracketsContainer.style.cssText = 'display:' + (state.bracketsExpanded ? 'block' : 'none');
+				bracketsContainer.style.cssText = 'display:' + (isExpanded ? 'block' : 'none');
 				
 				const expandBtn = document.createElement('div');
 				expandBtn.style.cssText = 'padding:6px 12px;margin-top:4px;font-family:"IBM Plex Mono",monospace;font-size:9px;color:var(--blue);cursor:pointer;user-select:none;display:flex;align-items:center;gap:6px';
-				expandBtn.innerHTML = `<span style="font-size:11px">${state.bracketsExpanded ? '▼' : '▶'}</span><span>Tax Brackets</span>`;
+				expandBtn.innerHTML = `<span style="font-size:11px">${isExpanded ? '▼' : '▶'}</span><span>Tax Brackets</span>`;
 				expandBtn.addEventListener('click', () => {
-					state.bracketsExpanded = !state.bracketsExpanded;
-					bracketsContainer.style.display = state.bracketsExpanded ? 'block' : 'none';
-					expandBtn.innerHTML = `<span style="font-size:11px">${state.bracketsExpanded ? '▼' : '▶'}</span><span>Tax Brackets</span>`;
+					state.bracketsExpandedMap[key] = !state.bracketsExpandedMap[key];
+					if (state.bracketsExpandedMap[key] === undefined) state.bracketsExpandedMap[key] = false;
+					const exp = state.bracketsExpandedMap[key] === true;
+					bracketsContainer.style.display = exp ? 'block' : 'none';
+					expandBtn.innerHTML = `<span style="font-size:11px">${exp ? '▼' : '▶'}</span><span>Tax Brackets</span>`;
 				});
 				body.appendChild(expandBtn);
 				
-				state.customBracketRates.forEach((bracket, idx) => {
+				brackets.forEach((bracket, idx) => {
 					const bracketRow = document.createElement('div');
-					bracketRow.style.cssText = 'padding:6px 12px;background:var(--panel);border-radius:3px;margin-top:2px;display:grid;grid-template-columns:100px 1fr 55px;align-items:center;gap:8px;font-family:"IBM Plex Mono",monospace;font-size:9px;border:1px solid var(--border);pointer-events:auto';
+					bracketRow.style.cssText = 'padding:6px 12px;background:var(--panel);border-radius:3px;margin-top:2px;display:grid;grid-template-columns:1fr 200px 55px;align-items:center;gap:8px;font-family:"IBM Plex Mono",monospace;font-size:9px;border:1px solid var(--border);pointer-events:auto';
 					
 					bracketRow.innerHTML = `
 						<span style="color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${bracket.label}">${bracket.label}</span>
@@ -104,7 +108,7 @@ function renderRevenue() {
 					
 					bracketSlider.addEventListener('input', (e) => {
 						const newRate = +e.target.value;
-						state.customBracketRates[idx].rate = newRate;
+						brackets[idx].rate = newRate;
 						rateDisplay.textContent = (newRate * 100).toFixed(1) + '%';
 						updateValues();
 					});
@@ -117,59 +121,98 @@ function renderRevenue() {
 		}
 	}
 
+	// Capital gains rendered through same unified path
 	const cgR = state.revenue.capitalGainsTax;
-	const cgAmt = cgR.baseAmount * cgR.rateMultiplier;
-	const cgPct = ((cgAmt / totalRev) * 100).toFixed(1);
+	const cgKey = 'capitalGainsTax';
+	const cgBrackets = state.taxBrackets[cgKey];
+	let cgDisplay;
+	if (state.cgAsOrdinary) {
+		cgDisplay = cgR.baseAmount * cgR.rateMultiplier;
+	} else if (cgR.type === 'progressive') {
+		cgDisplay = calcBracketRevenue(cgKey);
+	} else {
+		cgDisplay = cgR.baseAmount * cgR.rateMultiplier;
+	}
+	const cgPct = ((cgDisplay / totalRev) * 100).toFixed(1);
 	const cgRow = document.createElement('div');
 	cgRow.className = 'rev-row';
 	
-	if (!state.cgAsOrdinary && state.flatTaxRates.capitalGainsTax) {
-		const baseRate = state.flatTaxRates.capitalGainsTax;
-		const effectiveRate = (baseRate * cgR.rateMultiplier).toFixed(1);
-		cgRow.innerHTML = `
-			<span class="rev-label" title="${cgR.label}" style="cursor:pointer">${cgR.label}</span>
-			<button class="type-badge badge-flat">FLAT ${effectiveRate}%</button>
-			<input type="range" class="rev-slider" min="0" max="3" step="0.05" value="${cgR.rateMultiplier}">
-			<span class="rev-amount" id="rev-amt-capitalGainsTax">${formatB(cgAmt)}</span>
-			<span class="rev-pct" id="rev-pct-capitalGainsTax">${cgPct}%</span>
-		`;
-		
-		const cgBtn = cgRow.querySelector('.type-badge');
-		cgBtn.addEventListener('click', (e) => {
-			e.stopPropagation();
-			toggleCG();
-		});
-		
-		const cgSlider = cgRow.querySelector('.rev-slider');
-		cgSlider.addEventListener('input', (e) => {
-			e.stopPropagation();
-			const newRate = (baseRate * +e.target.value).toFixed(1);
-			cgBtn.textContent = `FLAT ${newRate}%`;
-			updateRevRate('capitalGainsTax', +e.target.value);
-		});
+	let cgBadgeClass, cgBadgeLabel;
+	if (state.cgAsOrdinary) {
+		cgBadgeClass = 'badge-prog';
+		cgBadgeLabel = 'ORDINARY';
+	} else if (cgR.type === 'progressive') {
+		cgBadgeClass = 'badge-prog';
+		cgBadgeLabel = 'PROG';
 	} else {
-		cgRow.innerHTML = `
-			<span class="rev-label" title="${cgR.label}" style="cursor:pointer">${cgR.label}</span>
-			<button class="type-badge ${state.cgAsOrdinary?'badge-prog':'badge-flat'}">${state.cgAsOrdinary?'ORDINARY':'CAP GAINS'}</button>
-			<input type="range" class="rev-slider" min="0" max="3" step="0.05" value="${cgR.rateMultiplier}">
-			<span class="rev-amount" id="rev-amt-capitalGainsTax">${formatB(cgAmt)}</span>
-			<span class="rev-pct" id="rev-pct-capitalGainsTax">${cgPct}%</span>
-		`;
-		
-		const cgBtn = cgRow.querySelector('.type-badge');
-		cgBtn.addEventListener('click', (e) => {
-			e.stopPropagation();
-			toggleCG();
-		});
-		
-		const cgSlider = cgRow.querySelector('.rev-slider');
-		cgSlider.addEventListener('input', (e) => {
-			e.stopPropagation();
-			updateRevRate('capitalGainsTax', +e.target.value);
-		});
+		const baseRate = state.flatTaxRates[cgKey];
+		cgBadgeClass = 'badge-flat';
+		cgBadgeLabel = `FLAT ${(baseRate * cgR.rateMultiplier).toFixed(1)}%`;
 	}
 	
+	cgRow.innerHTML = `
+		<span class="rev-label" title="${cgR.label}" style="cursor:pointer">${cgR.label}</span>
+		<button class="type-badge ${cgBadgeClass}">${cgBadgeLabel}</button>
+		<input type="range" class="rev-slider" min="0" max="3" step="0.05" value="${cgR.rateMultiplier}">
+		<span class="rev-amount" id="rev-amt-capitalGainsTax">${formatB(cgDisplay)}</span>
+		<span class="rev-pct" id="rev-pct-capitalGainsTax">${cgPct}%</span>
+	`;
+	
+	const cgBtn = cgRow.querySelector('.type-badge');
+	cgBtn.addEventListener('click', (e) => {
+		e.stopPropagation();
+		toggleCG();
+	});
+	
+	const cgSlider = cgRow.querySelector('.rev-slider');
+	cgSlider.addEventListener('input', (e) => {
+		e.stopPropagation();
+		if (cgR.type === 'flat' && !state.cgAsOrdinary) {
+			const newRate = (state.flatTaxRates[cgKey] * +e.target.value).toFixed(1);
+			cgBtn.textContent = `FLAT ${newRate}%`;
+		}
+		updateRevRate(cgKey, +e.target.value);
+	});
+	
 	body.appendChild(cgRow);
+	
+	// Bracket sliders for progressive capital gains
+	if (!state.cgAsOrdinary && cgR.type === 'progressive' && cgBrackets) {
+		const isExpanded = state.bracketsExpandedMap[cgKey] === true;
+		const bracketsContainer = document.createElement('div');
+		bracketsContainer.style.cssText = 'display:' + (isExpanded ? 'block' : 'none');
+		
+		const expandBtn = document.createElement('div');
+		expandBtn.style.cssText = 'padding:6px 12px;margin-top:4px;font-family:"IBM Plex Mono",monospace;font-size:9px;color:var(--blue);cursor:pointer;user-select:none;display:flex;align-items:center;gap:6px';
+		expandBtn.innerHTML = `<span style="font-size:11px">${isExpanded ? '▼' : '▶'}</span><span>Tax Brackets</span>`;
+		expandBtn.addEventListener('click', () => {
+			state.bracketsExpandedMap[cgKey] = !(state.bracketsExpandedMap[cgKey] === true);
+			const exp = state.bracketsExpandedMap[cgKey] === true;
+			bracketsContainer.style.display = exp ? 'block' : 'none';
+			expandBtn.innerHTML = `<span style="font-size:11px">${exp ? '▼' : '▶'}</span><span>Tax Brackets</span>`;
+		});
+		body.appendChild(expandBtn);
+		
+		cgBrackets.forEach((bracket, idx) => {
+			const bracketRow = document.createElement('div');
+			bracketRow.style.cssText = 'padding:6px 12px;background:var(--panel);border-radius:3px;margin-top:2px;display:grid;grid-template-columns:1fr 200px 55px;align-items:center;gap:8px;font-family:"IBM Plex Mono",monospace;font-size:9px;border:1px solid var(--border);pointer-events:auto';
+			bracketRow.innerHTML = `
+				<span style="color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${bracket.label}">${bracket.label}</span>
+				<input type="range" class="bracket-slider" min="0" max="0.5" step="0.01" value="${bracket.rate}">
+				<span class="bracket-rate" style="color:var(--green);font-weight:600;text-align:right">${(bracket.rate * 100).toFixed(1)}%</span>
+			`;
+			const sl = bracketRow.querySelector('.bracket-slider');
+			const rd = bracketRow.querySelector('.bracket-rate');
+			sl.addEventListener('input', (e) => {
+				const newRate = +e.target.value;
+				cgBrackets[idx].rate = newRate;
+				rd.textContent = (newRate * 100).toFixed(1) + '%';
+				updateValues();
+			});
+			bracketsContainer.appendChild(bracketRow);
+		});
+		body.appendChild(bracketsContainer);
+	}
 }
 
 document.addEventListener('click', (e) => {
@@ -275,7 +318,7 @@ function renderJobs() {
 		if (status === 'risk') atRisk++;
 		if (status === 'lost') lost++;
 
-		const {incomeTax, payroll, cgTax, total, effRate} = calcStudentTax(s);
+		const {incomeTax, payroll, cgTax, consumptionTax, total, effRate} = calcStudentTax(s);
 		const totalIncome = s.income + s.cgIncome;
 
 		const card = document.createElement('div');
@@ -297,13 +340,17 @@ function renderJobs() {
 
 		const indirect = indirectTooltip(s, status);
 		const itLabel = state.revenue.individualIncomeTax.type === 'flat' ? 'Income tax (flat)' : 'Income tax (prog)';
-		const ssLabel = state.revenue.socialSecurity.type === 'progressive' ? 'SS payroll (no cap)' : 'SS payroll (6.2%)';
+		const ssRate = (0.062 * state.revenue.socialSecurity.rateMultiplier * 100).toFixed(2);
 		const medRate = (0.0145 * state.revenue.medicare.rateMultiplier * 100).toFixed(2);
+		const ssCap = state.revenue.socialSecurity.type === 'progressive' ? s.income : 168600;
+		const ssTaxAmt = Math.min(s.income, ssCap) * 0.062 * state.revenue.socialSecurity.rateMultiplier;
+		const medTaxAmt = s.income * 0.0145 * state.revenue.medicare.rateMultiplier;
 		let tipLines = [
 			`${itLabel}: ${fmtMoney(incomeTax)}`,
-			`${ssLabel}: ${fmtMoney(payroll - (s.income * 0.0145 * state.revenue.medicare.rateMultiplier))} + Medicare ${medRate}%: ${fmtMoney(s.income * 0.0145 * state.revenue.medicare.rateMultiplier)}`,
+			`SS payroll (${ssRate}%): ${fmtMoney(ssTaxAmt)} + Medicare (${medRate}%): ${fmtMoney(medTaxAmt)}`,
 		];
 		if (s.cgIncome > 0) tipLines.push(`Capital gains tax: ${fmtMoney(cgTax)} (${state.cgAsOrdinary?'ordinary rates':'CG rates'})`);
+		if (consumptionTax > 0) tipLines.push(`Excise & tariffs: ${fmtMoney(consumptionTax)} (embedded in prices)`);
 		tipLines.push(`Total: ${fmtMoney(total)} | Eff. rate: ${effRate.toFixed(1)}%`);
 		if (indirect) tipLines.push('', indirect);
 		const tipText = tipLines.join('\n');
@@ -344,6 +391,16 @@ function renderDeficit() {
 
 	document.getElementById('rev-total-display').textContent = formatB(rev);
 	document.getElementById('spend-total-display').textContent = formatB(spend);
+	
+	// Social Security deficit
+	const ssDeficit = calcSSDeficit();
+	document.getElementById('ss-deficit-display').textContent = (ssDeficit >= 0 ? '+' : '') + formatB(ssDeficit);
+	document.getElementById('ss-deficit-display').style.color = ssDeficit >= 0 ? 'var(--green)' : 'var(--red)';
+	
+	// Medicare deficit
+	const medDeficit = calcMedicareDeficit();
+	document.getElementById('medicare-deficit-display').textContent = (medDeficit >= 0 ? '+' : '') + formatB(medDeficit);
+	document.getElementById('medicare-deficit-display').style.color = medDeficit >= 0 ? 'var(--green)' : 'var(--red)';
 
 	const barPct = Math.min(100, Math.max(0, ((gap + 2500) / 3350) * 100));
 	const bar = document.getElementById('bar-fill');
@@ -381,8 +438,9 @@ function updateValues() {
 	const totalRev = calcTotalRevenue();
 	for (const [key, r] of Object.entries(state.revenue)) {
 		let amt;
-		if (key === 'individualIncomeTax' && r.type === 'progressive') {
-			amt = calcIncomeTaxBracketRevenue();
+		const hasBrackets = key === 'individualIncomeTax' ? true : !!(state.taxBrackets && state.taxBrackets[key]);
+		if (hasBrackets && r.type === 'progressive') {
+			amt = calcBracketRevenue(key);
 		} else {
 			let multiplier = 1.0;
 			if (r.type === 'progressive' && progressiveMultipliers[key]) multiplier = progressiveMultipliers[key];
