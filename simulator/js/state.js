@@ -445,11 +445,11 @@ const state = {
 		],
 		capitalGainsTax: [
 			// by gain size tier, calibrated to $800B at 15% = $120B
-			{rate:0.00, incomeMass:400,   label:'$0 - $47K gains (0% tier)'},
-			{rate:0.15, incomeMass:260,   label:'$47K - $518.9K gains'},
-			{rate:0.15, incomeMass:90,    label:'$518.9K - $2M gains'},
-			{rate:0.20, incomeMass:30,    label:'$2M - $10M gains'},
-			{rate:0.20, incomeMass:20,    label:'$10M+ gains'},
+			{rate:0.00, min:0,        max:47025,    incomeMass:400,   label:'$0 - $47K gains (0% tier)'},
+			{rate:0.15, min:47025,    max:518900,   incomeMass:260,   label:'$47K - $518.9K gains'},
+			{rate:0.15, min:518900,   max:2000000,  incomeMass:90,    label:'$518.9K - $2M gains'},
+			{rate:0.20, min:2000000,  max:10000000, incomeMass:30,    label:'$2M - $10M gains'},
+			{rate:0.20, min:10000000, max:Infinity, incomeMass:20,    label:'$10M+ gains'},
 		],
 	},
 };
@@ -457,7 +457,7 @@ const state = {
 const students = [
 	{id:1,  name:'Part-time Retail Worker',  income:22000,      sector:'private', dependsOn:'Medicaid',                  depKey:'medicaid',    cgIncome:0},
 	{id:2,  name:'Warehouse Worker',          income:38000,      sector:'private', dependsOn:'Medicaid',                  depKey:'medicaid',    cgIncome:0},
-	{id:3,  name:'Public School Teacher',    income:54000,      sector:'private', dependsOn:'Federal Education (indirect)',depKey:'education',  cgIncome:0},
+	{id:3,  name:'Public School Teacher',    income:54000,      sector:'govt', dependsOn:'Federal Education (indirect)',depKey:'education',  cgIncome:0},
 	{id:4,  name:'Registered Nurse',          income:85000,      sector:'private', dependsOn:'Medicare/Medicaid',         depKey:'nurse',       cgIncome:0},
 	{id:5,  name:'Software Engineer',         income:140000,     sector:'private', dependsOn:'None',                      depKey:null,          cgIncome:0},
 	{id:6,  name:'Physician',                 income:320000,     sector:'private', dependsOn:'Medicare/Medicaid',         depKey:'nurse',       cgIncome:0},

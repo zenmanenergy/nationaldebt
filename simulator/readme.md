@@ -189,7 +189,7 @@ Shows all 12 student cards. Each card auto-calculates tax owed based on current 
 |---|---|---|---|---|
 | 1 | Part-time retail worker | \$22,000 | Private | Medicaid (uses it) |
 | 2 | Warehouse worker | \$38,000 | Private | Medicaid (uses it) |
-| 3 | Public school teacher | \$54,000 | Private | Federal education funding (indirect) |
+| 3 | Public school teacher | \$54,000 | Government | Federal education funding (indirect) |
 | 4 | Registered nurse | \$85,000 | Private | Medicare/Medicaid (employer revenue) |
 | 5 | Software engineer | \$140,000 | Private | None direct |
 | 6 | Physician | \$320,000 | Private | Medicare/Medicaid (employer revenue) |

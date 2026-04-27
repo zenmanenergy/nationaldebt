@@ -23,11 +23,12 @@ function renderRevenue() {
 		
 		if (r.type === 'flat' && state.flatTaxRates[key]) {
 			const baseRate = state.flatTaxRates[key];
+			const cappingMultiplier = 0.94 / (baseRate / 100);
 			const effectiveRate = (baseRate * r.rateMultiplier).toFixed(1);
 			row.innerHTML = `
 				<span class="rev-label" title="${r.label}" style="cursor:pointer">${r.label}</span>
 				<button class="type-badge badge-flat">FLAT ${effectiveRate}%</button>
-				<input type="range" class="rev-slider" min="0" max="3" step="0.05" value="${r.rateMultiplier}">
+				<input type="range" class="rev-slider" min="0" max="6.3" step="0.05" value="${r.rateMultiplier}">
 				<span class="rev-amount" id="rev-amt-${key}">${formatB(amt)}</span>
 				<span class="rev-pct" id="rev-pct-${key}">${pct}%</span>
 			`;
@@ -40,9 +41,11 @@ function renderRevenue() {
 			const slider = row.querySelector('.rev-slider');
 			slider.addEventListener('input', (e) => {
 				e.stopPropagation();
-				const newRate = (baseRate * +e.target.value).toFixed(1);
+				const cappedMultiplier = Math.min(+e.target.value, cappingMultiplier);
+				const newRate = (baseRate * cappedMultiplier).toFixed(1);
 				btn.textContent = `FLAT ${newRate}%`;
-				updateRevRate(key, +e.target.value);
+				updateRevRate(key, cappedMultiplier);
+				slider.value = cappedMultiplier;
 			});
 			
 			body.appendChild(row);
@@ -70,10 +73,11 @@ function renderRevenue() {
 					<span class="rev-pct" id="rev-pct-${key}">${pct}%</span>
 				`;
 			} else {
-				row.innerHTML = `
-					<span class="rev-label" title="${r.label}" style="cursor:pointer">${r.label}</span>
-					<button class="type-badge ${r.type==='progressive'?'badge-prog':'badge-flat'}">${r.type==='progressive'?'PROG':'FLAT'}</button>
-					<input type="range" class="rev-slider" min="0" max="3" step="0.05" value="${r.rateMultiplier}">
+			const baseRate = state.flatTaxRates[key] || 15;
+			row.innerHTML = `
+				<span class="rev-label" title="${r.label}" style="cursor:pointer">${r.label}</span>
+				<button class="type-badge ${r.type==='progressive'?'badge-prog':'badge-flat'}">${r.type==='progressive'?'PROG':'FLAT'}</button>
+				<input type="range" class="rev-slider" min="0" max="6.3" step="0.05" value="${r.rateMultiplier}">
 					<span class="rev-amount" id="rev-amt-${key}">${formatB(amt)}</span>
 					<span class="rev-pct" id="rev-pct-${key}">${pct}%</span>
 				`;
@@ -89,10 +93,17 @@ function renderRevenue() {
 			
 			if (!hasProgressiveBrackets) {
 				const slider = row.querySelector('.rev-slider');
-				(function(k) {
-					slider.addEventListener('input', (e) => {
-						e.stopPropagation();
-						updateRevRate(k, +e.target.value);
+				const baseRate = state.flatTaxRates[key] || 15;
+			const cappingMultiplier = 0.94 / (baseRate / 100);
+			(function(k) {
+				slider.addEventListener('input', (e) => {
+					e.stopPropagation();
+					const rawMultiplier = +e.target.value;
+					const cappedMultiplier = Math.min(rawMultiplier, cappingMultiplier);
+					updateRevRate(k, cappedMultiplier);
+					if (cappedMultiplier < rawMultiplier) {
+						slider.value = cappedMultiplier;
+					}
 					});
 				})(key);
 			}
@@ -102,6 +113,7 @@ function renderRevenue() {
 			// Add bracket sliders for any progressive tax with bracket data
 			if (hasProgressiveBrackets) {
 				const isExpanded = state.bracketsExpandedMap[key] === true;
+				const brackets = key === 'individualIncomeTax' ? state.customBracketRates : state.taxBrackets[key];
 				
 				// Determine label based on tax type
 				let bracketsLabel = 'Tax Brackets';
@@ -120,10 +132,6 @@ function renderRevenue() {
 					bracketsContainer.style.display = exp ? 'block' : 'none';
 					toggleBtn.innerHTML = `<span style="font-size:11px">${exp ? '▼' : '▶'}</span><span>${bracketsLabel}</span>`;
 				});
-				body.appendChild(bracketsContainer);
-				
-				// Set initial label
-				toggleBtn.innerHTML = `<span style="font-size:11px">${isExpanded ? '▼' : '▶'}</span><span>${bracketsLabel}</span>`;
 				
 				brackets.forEach((bracket, idx) => {
 					const bracketRow = document.createElement('div');
@@ -197,10 +205,11 @@ function renderRevenue() {
 			<span class="rev-pct" id="rev-pct-capitalGainsTax">${cgPct}%</span>
 		`;
 	} else {
+		const cgBaseRate = state.flatTaxRates[cgKey];
 		cgRow.innerHTML = `
 			<span class="rev-label" title="${cgR.label}" style="cursor:pointer">${cgR.label}</span>
 			<button class="type-badge ${cgBadgeClass}">${cgBadgeLabel}</button>
-			<input type="range" class="rev-slider" min="0" max="3" step="0.05" value="${cgR.rateMultiplier}">
+			<input type="range" class="rev-slider" min="0" max="6.3" step="0.05" value="${cgR.rateMultiplier}">
 			<span class="rev-amount" id="rev-amt-capitalGainsTax">${formatB(cgDisplay)}</span>
 			<span class="rev-pct" id="rev-pct-capitalGainsTax">${cgPct}%</span>
 		`;
@@ -214,13 +223,20 @@ function renderRevenue() {
 	
 	if (!shouldUseCGBrackets) {
 		const cgSlider = cgRow.querySelector('.rev-slider');
+		const cgBaseRate = state.flatTaxRates[cgKey];
+		const cgCappingMultiplier = 0.94 / (cgBaseRate / 100);
 		cgSlider.addEventListener('input', (e) => {
 			e.stopPropagation();
+			const rawMultiplier = +e.target.value;
+			const cappedMultiplier = Math.min(rawMultiplier, cgCappingMultiplier);
 			if (cgR.type === 'flat' && !state.cgAsOrdinary) {
-				const newRate = (state.flatTaxRates[cgKey] * +e.target.value).toFixed(1);
+				const newRate = (cgBaseRate * cappedMultiplier).toFixed(1);
 				cgBtn.textContent = `FLAT ${newRate}%`;
 			}
-			updateRevRate(cgKey, +e.target.value);
+			updateRevRate(cgKey, cappedMultiplier);
+			if (cappedMultiplier < rawMultiplier) {
+				cgSlider.value = cappedMultiplier;
+			}
 		});
 	}
 	
@@ -245,7 +261,7 @@ function renderRevenue() {
 			bracketRow.style.cssText = 'padding:6px 12px;background:var(--panel);border-radius:3px;margin-top:2px;display:grid;grid-template-columns:1fr 200px 55px;align-items:center;gap:8px;font-family:"IBM Plex Mono",monospace;font-size:9px;border:1px solid var(--border);pointer-events:auto';
 			bracketRow.innerHTML = `
 				<span style="color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${bracket.label}">${bracket.label}</span>
-				<input type="range" class="bracket-slider" min="0" max="0.5" step="0.01" value="${bracket.rate}">
+				<input type="range" class="bracket-slider" min="0" max="0.94" step="0.01" value="${bracket.rate}">
 				<span class="bracket-rate" style="color:var(--green);font-weight:600;text-align:right">${(bracket.rate * 100).toFixed(1)}%</span>
 			`;
 			const sl = bracketRow.querySelector('.bracket-slider');

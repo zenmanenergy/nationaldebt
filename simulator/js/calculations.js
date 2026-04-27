@@ -65,22 +65,14 @@ function calcCGTax(cgIncome) {
 		return cgIncome * baseRate * m;
 	}
 
-	// Progressive capital gains tax using real income thresholds (2024)
+	// Progressive capital gains tax using state brackets
 	let tax = 0;
+	const cgBrackets = state.taxBrackets.capitalGainsTax || [];
 	
-	// Real capital gains tax brackets for 2024 (single filer thresholds)
-	const cgBrackets = [
-		{threshold: 0,      rate: 0.00},
-		{threshold: 47025,  rate: 0.15},
-		{threshold: 518900, rate: 0.20},
-	];
-	
-	for (let i = 0; i < cgBrackets.length; i++) {
-		const bracketStart = cgBrackets[i].threshold;
-		const bracketEnd = i < cgBrackets.length - 1 ? cgBrackets[i + 1].threshold : Infinity;
-		const gainsInThisBracket = Math.max(0, Math.min(cgIncome, bracketEnd) - bracketStart);
-		tax += gainsInThisBracket * cgBrackets[i].rate * m;
-		if (cgIncome <= bracketEnd) break;
+	for (const b of cgBrackets) {
+		if (cgIncome <= b.min) break;
+		const amt = Math.min(cgIncome, b.max) - b.min;
+		tax += amt * b.rate * m;
 	}
 	
 	return tax;
